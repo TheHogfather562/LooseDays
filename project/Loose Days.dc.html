@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f0eee9;font-family:'Inter',system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+a{color:{{ accent }};text-decoration:none}
+a:hover{color:{{ accent }};text-decoration:underline}
+button{font-family:inherit}
+::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#f0eee9;display:flex;justify-content:center">
+<div style="width:100%;max-width:480px;min-height:100vh;background:#fbfaf7;display:flex;flex-direction:column;position:relative;box-shadow:0 0 60px rgba(0,0,0,.06)">
+
+<div style="flex:1;overflow-y:auto;padding-bottom:20px">
+
+<sc-if value="{{ isSignInStage }}" hint-placeholder-val="{{ true }}">
+  <div style="min-height:520px;display:flex;flex-direction:column;justify-content:center;padding:32px 30px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:36px">
+      <span style="width:10px;height:10px;border-radius:50%;background:{{ accent }}"></span>
+      <span style="font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:#1a1a1a;letter-spacing:0.01em">Loose Days</span>
+    </div>
+    <sc-if value="{{ signInSent }}" hint-placeholder-val="{{ false }}">
+      <div style="width:44px;height:32px;border:2px solid #cfc9bd;border-radius:6px;position:relative;margin-bottom:18px">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#cfc9bd;transform-origin:top;transform:scaleY(1)"></div>
+      </div>
+      <h1 style="margin:0 0 8px;font-family:'Space Grotesk',sans-serif;font-size:21px;font-weight:600;color:#1a1a1a">Check your email</h1>
+      <p style="margin:0 0 22px;font-size:13px;color:#8a8374;line-height:1.6">We sent a sign-in link to {{ signInEmail }}. Open it on this device to continue.</p>
+      <button onClick="{{ resendSignIn }}" style="align-self:flex-start;border:none;background:transparent;color:{{ accent }};font-size:13px;font-weight:600;cursor:pointer;padding:0;margin-bottom:28px">Resend link</button>
+      <button onClick="{{ continueFromSignIn }}" style="align-self:flex-start;border:none;background:transparent;color:#a39d90;font-size:12px;cursor:pointer;padding:0">Continue (demo) →</button>
+    </sc-if>
+    <sc-if value="{{ signInNotSent }}" hint-placeholder-val="{{ true }}">
+      <h1 style="margin:0 0 8px;font-family:'Space Grotesk',sans-serif;font-size:21px;font-weight:600;color:#1a1a1a">Sign in</h1>
+      <p style="margin:0 0 22px;font-size:13px;color:#8a8374;line-height:1.6">Enter your email — we'll send a link, no password needed.</p>
+      <label style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px">
+        <span style="font-size:12px;font-weight:600;color:#8a8374">Email</span>
+        <input type="email" placeholder="you@example.com" value="{{ signInEmail }}" onChange="{{ onSignInEmailChange }}" style="border:1px solid #e9e4d8;border-radius:10px;padding:12px 14px;font-size:14px;font-family:inherit;color:#1a1a1a"/>
+      </label>
+      <button onClick="{{ sendSignIn }}" disabled="{{ signInDisabled }}" style="{{ signInButtonStyle }}">Send magic link</button>
+      <p style="margin:16px 0 0;font-size:11.5px;color:#b7b0a1;line-height:1.5">Sign-up is invite-only right now — ask a friend already on Loose Days to add you.</p>
+    </sc-if>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isOnboardingStage }}">
+  <div>
+    <div style="padding:26px 22px 4px">
+      <h1 style="margin:0 0 6px;font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:600;color:#1a1a1a">Add your friends</h1>
+      <p style="margin:0;font-size:12.5px;color:#9a9384;line-height:1.5">We checked your contacts against Loose Days — matches shown first.</p>
+    </div>
+    <div style="padding:18px 18px 0;display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{ contactRows }}" as="c" hint-placeholder-count="5">
+        <div style="border:1px solid #e9e4d8;border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;background:#fff">
+          <div>
+            <div style="font-size:13.5px;font-weight:600;color:#1a1a1a">{{ c.name }}</div>
+            <div style="font-size:11.5px;color:#a39d90">{{ c.subLabel }}</div>
+          </div>
+          <sc-if value="{{ c.isMatched }}">
+            <button onClick="{{ c.onAdd }}" style="{{ c.addButtonStyle }}">{{ c.addButtonLabel }}</button>
+          </sc-if>
+          <sc-if value="{{ c.isUnmatched }}">
+            <div style="display:flex;gap:6px">
+              <a href="{{ c.smsLink }}" style="border:1px solid #e9e4d8;border-radius:8px;padding:7px 10px;font-size:11.5px;color:#1a1a1a;font-weight:600">SMS</a>
+              <a href="{{ c.waLink }}" style="border:1px solid #e9e4d8;border-radius:8px;padding:7px 10px;font-size:11.5px;color:#1a1a1a;font-weight:600">WhatsApp</a>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+    <div style="padding:22px 18px 24px">
+      <button onClick="{{ finishOnboarding }}" style="width:100%;border:none;border-radius:10px;padding:13px;background:{{ accent }};color:#fff;font-size:14px;font-weight:600;cursor:pointer">Continue to Loose Days</button>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isAppStage }}">
+
+<sc-if value="{{ isCalendarTab }}" hint-placeholder-val="{{ true }}">
+<div>
+  <div style="padding:26px 22px 4px;display:flex;justify-content:space-between;align-items:center">
+    <span style="width:30px;height:30px;border-radius:50%;background:#e7e1d3;display:inline-block"></span>
+    <span style="font-size:12px;color:#a39d90">My Calendar</span>
+  </div>
+  <div style="padding:10px 22px 4px;display:flex;align-items:baseline;justify-content:space-between">
+    <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:600;color:#1a1a1a">{{ monthLabel }}</h1>
+    <div style="display:flex;gap:18px">
+      <button onClick="{{ prevMonth }}" style="border:none;background:transparent;font-size:16px;color:#8a8374;cursor:pointer;padding:4px">‹</button>
+      <button onClick="{{ nextMonth }}" style="border:none;background:transparent;font-size:16px;color:#8a8374;cursor:pointer;padding:4px">›</button>
+    </div>
+  </div>
+  <p style="margin:0 22px 14px;font-size:12.5px;color:#9a9384">Tap a day to set your status</p>
+
+  <div style="padding:0 18px;display:grid;grid-template-columns:repeat(7,1fr);text-align:center">
+    <sc-for list="{{ weekLabels }}" as="wl" hint-placeholder-count="7">
+      <div style="font-size:11px;color:#b7b0a1;padding:2px 0 10px;font-weight:500">{{ wl }}</div>
+    </sc-for>
+  </div>
+
+  <div style="padding:0 18px;display:grid;grid-template-columns:repeat(7,1fr);row-gap:8px">
+    <sc-for list="{{ calCells }}" as="cell" hint-placeholder-count="42">
+      <button onClick="{{ cell.onClick }}" style="{{ cell.wrapStyle }}">
+        <span style="{{ cell.numStyle }}">{{ cell.dayLabel }}</span>
+        <span style="{{ cell.dotStyle }}"></span>
+      </button>
+    </sc-for>
+  </div>
+
+  <div style="margin:18px 22px 6px;display:flex;gap:14px;font-size:11px;color:#8a8374">
+    <div style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:50%;box-sizing:border-box;border:2px solid #7a9b7e"></span><span>free</span></div>
+    <div style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:50%;box-sizing:border-box;border:2px solid #c48a2e;background:linear-gradient(90deg,#c48a2e 50%,transparent 50%)"></span><span>maybe</span></div>
+    <div style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:50%;background:#b0483f"></span><span>busy</span></div>
+  </div>
+
+  <sc-if value="{{ hasSelectedDay }}">
+    <div style="margin:14px 18px 0;padding:16px;border:1px solid #e9e4d8;border-radius:16px;background:#f7f5f0">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span style="font-size:13px;font-weight:600;color:#1a1a1a">{{ selectedDayLabel }}</span>
+        <div style="display:flex;gap:12px">
+          <button onClick="{{ clearSelectedDay }}" style="border:none;background:transparent;color:#a39d90;font-size:13px;cursor:pointer">Clear</button>
+          <button onClick="{{ closeDayPanel }}" style="border:none;background:transparent;color:#a39d90;font-size:13px;cursor:pointer">Close</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <sc-for list="{{ statusPills }}" as="pill" hint-placeholder-count="3">
+          <button onClick="{{ pill.onClick }}" style="{{ pill.style }}">{{ pill.label }}</button>
+        </sc-for>
+      </div>
+      <textarea placeholder="Add a short note (optional)" value="{{ calNoteDraft }}" onChange="{{ onNoteChange }}" style="width:100%;box-sizing:border-box;border:1px solid #e9e4d8;border-radius:10px;padding:10px 12px;font-size:13px;font-family:inherit;color:#2a2622;resize:none;height:56px;background:#fff"></textarea>
+      <button onClick="{{ saveCalNote }}" style="margin-top:10px;width:100%;border:none;border-radius:10px;padding:11px;background:{{ accent }};color:#fff;font-size:13.5px;font-weight:600;cursor:pointer">Save note</button>
+    </div>
+  </sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isFriendsListScreen }}">
+  <div>
+    <div style="padding:26px 22px 4px">
+      <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:600;color:#1a1a1a">Friends</h1>
+    </div>
+    <div style="padding:14px 18px 4px;display:flex;gap:10px">
+      <button onClick="{{ goToIncoming }}" style="flex:1;text-align:left;border:1px solid #e9e4d8;border-radius:14px;padding:12px 14px;background:#fff;cursor:pointer">
+        <div style="font-size:12.5px;font-weight:600;color:#1a1a1a">Requests</div>
+        <div style="font-size:11px;color:#9a9384;margin-top:2px">{{ incomingCountLabel }}</div>
+      </button>
+      <button onClick="{{ goToWhoCanSee }}" style="flex:1;text-align:left;border:1px solid #e9e4d8;border-radius:14px;padding:12px 14px;background:#fff;cursor:pointer">
+        <div style="font-size:12.5px;font-weight:600;color:#1a1a1a">Who can see me</div>
+        <div style="font-size:11px;color:#9a9384;margin-top:2px">{{ standingCountLabel }}</div>
+      </button>
+    </div>
+    <div style="padding:18px 18px 0;display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{ friendListRows }}" as="fr" hint-placeholder-count="5">
+        <div style="border:1px solid #e9e4d8;border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:#fff">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-size:13.5px;font-weight:600;color:#1a1a1a">{{ fr.name }}</div>
+              <div style="font-size:11.5px;color:#a39d90">{{ fr.subLabel }}</div>
+            </div>
+            <button onClick="{{ fr.onAction }}" style="{{ fr.actionStyle }}">{{ fr.actionLabel }}</button>
+          </div>
+          <sc-if value="{{ fr.showRequestMore }}">
+            <button onClick="{{ fr.onRequestMore }}" style="align-self:flex-start;border:none;background:transparent;color:{{ accent }};font-size:11.5px;font-weight:600;cursor:pointer;padding:0">Request another range</button>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isRequestAccessScreen }}">
+  <div>
+    <div style="padding:22px 18px 10px;display:flex;align-items:center;gap:10px">
+      <button onClick="{{ backToFriends }}" style="border:none;background:transparent;color:#8a8374;font-size:15px;cursor:pointer;padding:4px 6px">‹</button>
+      <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:600;color:#1a1a1a">Request access</h1>
+    </div>
+    <sc-if value="{{ requestSent }}">
+      <div style="padding:0 22px">
+        <div style="border:1px solid #e9e4d8;border-radius:14px;padding:14px;margin-top:6px;display:flex;justify-content:space-between;align-items:center;background:#fff">
+          <div>
+            <div style="font-size:13.5px;font-weight:600;color:#1a1a1a">{{ requestFriendName }}</div>
+            <div style="font-size:11.5px;color:#a39d90">Notify them to approve</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <a href="{{ requestSmsLink }}" style="border:1px solid #e9e4d8;border-radius:8px;padding:7px 10px;font-size:12px;color:#1a1a1a;font-weight:600">SMS</a>
+            <a href="{{ requestWaLink }}" style="border:1px solid #e9e4d8;border-radius:8px;padding:7px 10px;font-size:12px;color:#1a1a1a;font-weight:600">WhatsApp</a>
+          </div>
+        </div>
+        <button onClick="{{ backToFriends }}" style="width:100%;border:none;border-radius:10px;padding:13px;background:{{ accent }};color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-top:16px">Done</button>
+      </div>
+    </sc-if>
+    <sc-if value="{{ requestNotSent }}">
+      <div style="padding:8px 22px 0;display:flex;flex-direction:column;gap:16px">
+        <div>
+          <span style="font-size:12px;font-weight:600;color:#8a8374">Friend</span>
+          <div style="font-size:14.5px;font-weight:600;color:#1a1a1a;margin-top:6px">{{ requestFriendName }}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:12px;font-weight:600;color:#8a8374">Scope</span>
+          <div style="display:flex;gap:8px">
+            <button onClick="{{ setScopeRange }}" style="{{ scopeRangeStyle }}">Specific range</button>
+            <button onClick="{{ setScopeStanding }}" style="{{ scopeStandingStyle }}">Ongoing</button>
+          </div>
+        </div>
+        <sc-if value="{{ scopeIsRange }}">
+          <div style="display:flex;gap:12px">
+            <label style="display:flex;flex-direction:column;gap:6px;flex:1">
+              <span style="font-size:12px;font-weight:600;color:#8a8374">Start</span>
+              <input type="date" value="{{ requestStart }}" onChange="{{ onRequestStartChange }}" style="border:1px solid #e9e4d8;border-radius:10px;padding:10px 10px;font-size:13px;font-family:inherit;color:#1a1a1a"/>
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px;flex:1">
+              <span style="font-size:12px;font-weight:600;color:#8a8374">End</span>
+              <input type="date" value="{{ requestEnd }}" onChange="{{ onRequestEndChange }}" style="border:1px solid #e9e4d8;border-radius:10px;padding:10px 10px;font-size:13px;font-family:inherit;color:#1a1a1a"/>
+            </label>
+          </div>
+        </sc-if>
+        <button onClick="{{ sendRequest }}" disabled="{{ requestSendDisabled }}" style="{{ requestSendButtonStyle }}">Send request</button>
+      </div>
+    </sc-if>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isIncomingScreen }}">
+  <div>
+    <div style="padding:22px 18px 4px;display:flex;align-items:center;gap:10px">
+      <button onClick="{{ backToFriends }}" style="border:none;background:transparent;color:#8a8374;font-size:15px;cursor:pointer;padding:4px 6px">‹</button>
+      <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:600;color:#1a1a1a">Incoming requests</h1>
+    </div>
+    <div style="padding:16px 18px 0;display:flex;flex-direction:column;gap:12px">
+      <sc-for list="{{ incomingRows }}" as="req" hint-placeholder-count="2">
+        <div style="border:1px solid #e9e4d8;border-radius:14px;padding:14px;background:#fff;display:flex;flex-direction:column;gap:10px">
+          <div>
+            <div style="font-size:13.5px;font-weight:600;color:#1a1a1a">{{ req.requesterName }}</div>
+            <div style="font-size:11.5px;color:#a39d90">{{ req.scopeLabel }}</div>
+          </div>
+          <sc-if value="{{ req.isChoosingLevel }}">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:11.5px;color:#8a8374">Reveal level</span>
+              <div style="display:flex;gap:8px">
+                <button onClick="{{ req.onPickFull }}" style="{{ req.fullPillStyle }}">Full status</button>
+                <button onClick="{{ req.onPickOverlap }}" style="{{ req.overlapPillStyle }}">Overlap only</button>
+              </div>
+              <button onClick="{{ req.onConfirm }}" style="border:none;border-radius:10px;padding:11px;background:{{ accent }};color:#fff;font-size:13px;font-weight:600;cursor:pointer">Confirm approval</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{ req.isPending }}">
+            <div style="display:flex;gap:8px">
+              <button onClick="{{ req.onApprove }}" style="flex:1;border:none;border-radius:10px;padding:10px;background:{{ accent }};color:#fff;font-size:12.5px;font-weight:600;cursor:pointer">Approve</button>
+              <button onClick="{{ req.onDeny }}" style="flex:1;border:1px solid #e9e4d8;border-radius:10px;padding:10px;background:#fff;color:#8a8374;font-size:12.5px;font-weight:600;cursor:pointer">Deny</button>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+      <sc-if value="{{ noIncoming }}">
+        <p style="text-align:center;font-size:12.5px;color:#a39d90;padding:30px 0">No pending requests</p>
+      </sc-if>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isWhoCanSeeScreen }}">
+  <div>
+    <div style="padding:22px 18px 4px;display:flex;align-items:center;gap:10px">
+      <button onClick="{{ backToFriends }}" style="border:none;background:transparent;color:#8a8374;font-size:15px;cursor:pointer;padding:4px 6px">‹</button>
+      <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:600;color:#1a1a1a">Who can see my calendar</h1>
+    </div>
+    <div style="padding:16px 18px 0;display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{ standingRows }}" as="row" hint-placeholder-count="2">
+        <div style="border:1px solid #e9e4d8;border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;background:#fff">
+          <div>
+            <div style="font-size:13.5px;font-weight:600;color:#1a1a1a">{{ row.friendName }}</div>
+            <div style="font-size:11.5px;color:#a39d90">{{ row.detailLabel }}</div>
+          </div>
+          <button onClick="{{ row.onRevoke }}" style="border:1px solid #e9e4d8;border-radius:8px;padding:7px 12px;font-size:12px;color:#b0483f;font-weight:600;background:#fff;cursor:pointer">Revoke</button>
+        </div>
+      </sc-for>
+      <sc-if value="{{ noStanding }}">
+        <p style="text-align:center;font-size:12.5px;color:#a39d90;padding:30px 0">Nobody has standing access yet</p>
+      </sc-if>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isViewFriendCalendarScreen }}">
+  <div>
+    <div style="padding:22px 18px 4px;display:flex;align-items:center;gap:10px">
+      <button onClick="{{ backToFriends }}" style="border:none;background:transparent;color:#8a8374;font-size:15px;cursor:pointer;padding:4px 6px">‹</button>
+      <div>
+        <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:600;color:#1a1a1a">{{ viewFriendName }}</h1>
+        <span style="font-size:12px;color:#9a9384">{{ viewFriendLevelLabel }}</span>
+      </div>
+    </div>
+    <p style="margin:12px 22px 14px;font-size:12px;color:#9a9384;line-height:1.5">{{ viewFriendHint }}</p>
+    <div style="padding:0 18px;display:grid;grid-template-columns:repeat(7,1fr);text-align:center">
+      <sc-for list="{{ weekLabels }}" as="wl" hint-placeholder-count="7">
+        <div style="font-size:11px;color:#b7b0a1;padding:2px 0 10px;font-weight:500">{{ wl }}</div>
+      </sc-for>
+    </div>
+    <div style="padding:0 18px;display:grid;grid-template-columns:repeat(7,1fr);row-gap:8px">
+      <sc-for list="{{ viewFriendCells }}" as="cell" hint-placeholder-count="35">
+        <div style="{{ cell.wrapStyle }}">
+          <span style="{{ cell.numStyle }}">{{ cell.dayLabel }}</span>
+          <span style="{{ cell.dotStyle }}"></span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="margin:18px 22px 20px;display:flex;gap:14px;font-size:11px;color:#8a8374">
+      <sc-for list="{{ viewFriendLegend }}" as="leg" hint-placeholder-count="2">
+        <div style="display:flex;align-items:center;gap:5px"><span style="{{ leg.dotStyle }}"></span><span>{{ leg.label }}</span></div>
+      </sc-for>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isPollsListScreen }}">
+  <div>
+    <div style="padding:26px 22px 4px;display:flex;justify-content:space-between;align-items:center">
+      <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:600;color:#1a1a1a">Polls</h1>
+      <button onClick="{{ startCreate }}" style="border:none;border-radius:10px;padding:9px 14px;background:{{ accent }};color:#fff;font-size:13px;font-weight:600;cursor:pointer">+ New poll</button>
+    </div>
+    <p style="margin:6px 22px 18px;font-size:12.5px;color:#9a9384">Find the range that works for everyone</p>
+
+    <div style="padding:0 18px;display:flex;flex-direction:column;gap:12px">
+      <sc-for list="{{ pollCards }}" as="poll" hint-placeholder-count="3">
+        <button onClick="{{ poll.onOpen }}" style="text-align:left;border:1px solid #e9e4d8;border-radius:16px;padding:16px;background:#fff;cursor:pointer;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <span style="font-size:15px;font-weight:600;color:#1a1a1a;font-family:'Space Grotesk',sans-serif">{{ poll.title }}</span>
+            <span style="{{ poll.badgeStyle }}">{{ poll.badgeLabel }}</span>
+          </div>
+          <span style="font-size:12.5px;color:#8a8374">{{ poll.dateRangeLabel }}</span>
+          <span style="font-size:12px;color:#a39d90">{{ poll.memberSummary }}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isPollsCreateFormStep }}">
+  <div>
+    <div style="padding:22px 18px 10px;display:flex;align-items:center;gap:10px">
+      <button onClick="{{ backToList }}" style="border:none;background:transparent;color:#8a8374;font-size:15px;cursor:pointer;padding:4px 6px">‹</button>
+      <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:600;color:#1a1a1a">New poll</h1>
+    </div>
+    <div style="padding:8px 22px 0;display:flex;flex-direction:column;gap:16px">
+      <label style="display:flex;flex-direction:column;gap:6px">
+        <span style="font-size:12px;font-weight:600;color:#8a8374">Title</span>
+        <input type="text" placeholder="e.g. Cabin weekend" value="{{ createTitle }}" onChange="{{ onTitleChange }}" style="border:1px solid #e9e4d8;border-radius:10px;padding:11px 12px;font-size:14px;font-family:inherit;color:#1a1a1a"/>
+      </label>
+      <div style="display:flex;gap:12px">
+        <label style="display:flex;flex-direction:column;gap:6px;flex:1">
+          <span style="font-size:12px;font-weight:600;color:#8a8374">Start</span>
+          <input type="date" value="{{ createStart }}" onChange="{{ onStartChange }}" style="border:1px solid #e9e4d8;border-radius:10px;padding:10px 10px;font-size:13px;font-family:inherit;color:#1a1a1a"/>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:6px;flex:1">
+          <span style="font-size:12px;font-weight:600;color:#8a8374">End</span>
+          <input type="date" value="{{ createEnd }}" onChange="{{ onEndChange }}" style="border:1px solid #e9e4d8;border-radius:10px;padding:10px 10px;font-size:13px;font-family:inherit;color:#1a1a1a"/>
+        </label>
+      </div>
+      <label style="display:flex;flex-direction:column;gap:6px">
+        <span style="font-size:12px;font-weight:600;color:#8a8374">Note (optional)</span>
+        <input type="text" placeholder="e.g. need to book by Friday" value="{{ createNote }}" onChange="{{ onCreateNoteChange }}" style="border:1px solid #e9e4d8;border-radius:10px;padding:11px 12px;font-size:14px;font-family:inherit;color:#1a1a1a"/>
+      </label>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font-size:12px;font-weight:600;color:#8a8374">Invite friends</span>
+        <sc-for list="{{ friendRows }}" as="fr" hint-placeholder-count="5">
+          <button onClick="{{ fr.onToggle }}" style="{{ fr.rowStyle }}">
+            <span>{{ fr.name }}</span>
+            <span style="{{ fr.checkStyle }}"></span>
+          </button>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font-size:12px;font-weight:600;color:#8a8374">Or add a phone number</span>
+        <div style="display:flex;gap:8px">
+          <input type="tel" placeholder="+1 555-0100" value="{{ phoneInput }}" onChange="{{ onPhoneInputChange }}" style="flex:1;border:1px solid #e9e4d8;border-radius:10px;padding:10px 12px;font-size:13px;font-family:inherit;color:#1a1a1a"/>
+          <button onClick="{{ addPhoneChip }}" style="border:none;border-radius:10px;padding:0 16px;background:#e9e4d8;color:#1a1a1a;font-size:13px;font-weight:600;cursor:pointer">Add</button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <sc-for list="{{ phoneChips }}" as="chip" hint-placeholder-count="0">
+            <span style="display:flex;align-items:center;gap:6px;background:#f0eee9;border-radius:20px;padding:6px 10px;font-size:12.5px;color:#2a2622">{{ chip.value }}<button onClick="{{ chip.onRemove }}" style="border:none;background:transparent;color:#a39d90;cursor:pointer;font-size:13px;padding:0">×</button></span>
+          </sc-for>
+        </div>
+      </div>
+
+      <button onClick="{{ goToSend }}" disabled="{{ sendDisabled }}" style="{{ sendButtonStyle }}">Continue to invites</button>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isPollsCreateSentStep }}">
+  <div>
+    <div style="padding:22px 18px 10px;display:flex;align-items:center;gap:10px">
+      <button onClick="{{ backToCreateForm }}" style="border:none;background:transparent;color:#8a8374;font-size:15px;cursor:pointer;padding:4px 6px">‹</button>
+      <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:600;color:#1a1a1a">Send invites</h1>
+    </div>
+    <p style="margin:0 22px 16px;font-size:12.5px;color:#9a9384">Loose Days doesn't message anyone directly — send each person a link over SMS or WhatsApp.</p>
+    <div style="padding:0 18px;display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{ sendRows }}" as="row" hint-placeholder-count="2">
+        <div style="border:1px solid #e9e4d8;border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:13.5px;font-weight:600;color:#1a1a1a">{{ row.name }}</div>
+            <div style="font-size:11.5px;color:#a39d90">{{ row.phone }}</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <a href="{{ row.smsLink }}" style="border:1px solid #e9e4d8;border-radius:8px;padding:7px 10px;font-size:12px;color:#1a1a1a;font-weight:600">SMS</a>
+            <a href="{{ row.waLink }}" style="border:1px solid #e9e4d8;border-radius:8px;padding:7px 10px;font-size:12px;color:#1a1a1a;font-weight:600">WhatsApp</a>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="padding:20px 18px 0">
+      <button onClick="{{ finishCreate }}" style="width:100%;border:none;border-radius:10px;padding:13px;background:{{ accent }};color:#fff;font-size:14px;font-weight:600;cursor:pointer">Done</button>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isPollsRespondScreen }}">
+  <div>
+    <div style="padding:22px 18px 4px;display:flex;align-items:center;gap:10px">
+      <button onClick="{{ backToList }}" style="border:none;background:transparent;color:#8a8374;font-size:15px;cursor:pointer;padding:4px 6px">‹</button>
+      <div>
+        <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:600;color:#1a1a1a">{{ respondPollTitle }}</h1>
+        <span style="font-size:12px;color:#9a9384">{{ respondPollRange }}</span>
+      </div>
+    </div>
+    <p style="margin:12px 22px 14px;font-size:12.5px;color:#9a9384">Mark your availability for each day</p>
+    <div style="padding:0 18px;display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{ respondDays }}" as="rd" hint-placeholder-count="4">
+        <div style="border:1px solid #e9e4d8;border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+          <span style="font-size:13px;font-weight:600;color:#1a1a1a">{{ rd.label }}</span>
+          <div style="display:flex;gap:8px">
+            <sc-for list="{{ rd.pills }}" as="pill" hint-placeholder-count="3">
+              <button onClick="{{ pill.onClick }}" style="{{ pill.style }}">{{ pill.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="padding:20px 18px 0">
+      <button onClick="{{ submitRespond }}" disabled="{{ submitDisabled }}" style="{{ submitButtonStyle }}">Submit response</button>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isPollsResultsScreen }}">
+  <div>
+    <div style="padding:22px 18px 4px;display:flex;align-items:center;gap:10px">
+      <button onClick="{{ backToList }}" style="border:none;background:transparent;color:#8a8374;font-size:15px;cursor:pointer;padding:4px 6px">‹</button>
+      <div>
+        <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:600;color:#1a1a1a">{{ resultsPollTitle }}</h1>
+        <span style="font-size:12px;color:#9a9384">{{ resultsPollRange }}</span>
+      </div>
+    </div>
+    <sc-if value="{{ hasBestRange }}">
+      <div style="margin:14px 18px 0;padding:12px 14px;border-radius:12px;background:#eef3ea;display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:11.5px;font-weight:600;color:#4d6b52">Best overlap</span>
+        <span style="font-size:13.5px;color:#2a2622">{{ bestRangeLabel }}</span>
+      </div>
+    </sc-if>
+
+    <div style="margin:16px 0 0;overflow-x:auto;padding:0 18px 18px">
+      <div style="{{ resultsGridStyle }}">
+        <div></div>
+        <sc-for list="{{ resultsPeople }}" as="p" hint-placeholder-count="4">
+          <div style="font-size:11px;font-weight:600;color:#8a8374;text-align:center;padding:0 2px 8px;writing-mode:horizontal-tb">{{ p.initials }}</div>
+        </sc-for>
+
+        <sc-for list="{{ resultsRows }}" as="row" hint-placeholder-count="4">
+          <div style="{{ row.labelStyle }}">{{ row.label }}</div>
+          <sc-for list="{{ row.cells }}" as="cell" hint-placeholder-count="4">
+            <div style="{{ cell.style }}"></div>
+          </sc-for>
+        </sc-for>
+      </div>
+    </div>
+    <div style="padding:0 22px 20px;display:flex;gap:14px;font-size:11px;color:#8a8374">
+      <div style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:50%;box-sizing:border-box;border:2px solid #7a9b7e"></span><span>free</span></div>
+      <div style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:50%;box-sizing:border-box;border:2px solid #c48a2e;background:linear-gradient(90deg,#c48a2e 50%,transparent 50%)"></span><span>maybe</span></div>
+      <div style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:50%;background:#b0483f"></span><span>busy</span></div>
+      <div style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:50%;background:#e5e0d3"></span><span>pending</span></div>
+    </div>
+  </div>
+</sc-if>
+
+</sc-if>
+
+</div>
+
+<sc-if value="{{ isAppStage }}">
+<div style="display:flex;border-top:1px solid #e9e4d8;padding:12px 0 20px;background:#fff">
+  <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="3">
+    <button onClick="{{ tab.onClick }}" style="flex:1;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;padding:4px 0">
+      <span style="{{ tab.shapeStyle }}"></span>
+      <span style="{{ tab.labelStyle }}">{{ tab.label }}</span>
+    </button>
+  </sc-for>
+</div>
+</sc-if>
+
+</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:480,&quot;height&quot;:900},&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#3f7a5c&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#2a5fb0&quot;,&quot;#3f7a5c&quot;,&quot;#8a5fb0&quot;,&quot;#b0703f&quot;]},&quot;calendarDensity&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;airy&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;airy&quot;,&quot;compact&quot;]}}">
+const FREE = '#7a9b7e', MAYBE = '#c48a2e', BUSY = '#b0483f', BORDER = '#e9e4d8', TEXT = '#1a1a1a', SUBTEXT = '#8a8374', PENDING = '#e5e0d3';
+const WEEKDAY_LABELS = ['S','M','T','W','T','F','S'];
+
+function pad(n) { return String(n).padStart(2, '0'); }
+function dateStr(y, m, d) { return `${y}-${pad(m + 1)}-${pad(d)}`; }
+function dateRangeArr(start, end) {
+  const out = [];
+  let cur = new Date(start + 'T00:00:00Z');
+  const endD = new Date(end + 'T00:00:00Z');
+  while (cur <= endD) {
+    out.push(cur.toISOString().slice(0, 10));
+    cur = new Date(cur.getTime() + 86400000);
+  }
+  return out;
+}
+function fmtShort(d) {
+  return new Date(d + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+}
+function fmtWeekdayShort(d) {
+  return new Date(d + 'T00:00:00Z').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+}
+function fmtRangeLabel(start, end) {
+  const y = new Date(end + 'T00:00:00Z').getFullYear();
+  return `${fmtShort(start)} – ${fmtShort(end)}, ${y}`;
+}
+
+class Component extends DCLogic {
+  state = {
+    activeTab: 'calendar',
+    calMonthOffset: 0,
+    calStatuses: {
+      '2026-07-02': { status: 'maybe', note: '' },
+      '2026-07-04': { status: 'busy', note: '' },
+      '2026-07-09': { status: 'busy', note: 'Deadline at work' },
+      '2026-07-10': { status: 'maybe', note: '' },
+      '2026-07-15': { status: 'busy', note: 'Team offsite' },
+      '2026-07-20': { status: 'maybe', note: '' },
+      '2026-07-21': { status: 'maybe', note: '' },
+      '2026-07-27': { status: 'busy', note: '' }
+    },
+    selectedCalDate: null,
+    calNoteDraft: '',
+    polls: [],
+    pollsScreen: 'list',
+    selectedPollId: null,
+    createForm: { title: '', note: '', start: '', end: '', friendSel: {}, phoneChips: [], phoneInput: '', step: 'form' },
+    respondDraft: {},
+
+    appStage: 'signin',
+    signInEmail: '', signInSent: false,
+    onboardingAdded: {},
+    friendsScreen: 'list',
+    friendAccess: {},
+    outgoingPending: {},
+    requestForm: { friendId: null, scope: 'range', start: '', end: '', sent: false },
+    incomingRequests: [],
+    approvingId: null, approvingLevel: 'full',
+    standingAccess: [],
+    viewFriendId: null
+  };
+
+  componentDidMount() {
+    import('./mock-data.js').then((mod) => {
+      this.friends = mod.friends;
+      this.currentUser = mod.currentUser;
+      this.contacts = mod.contacts;
+      this.friendCalendars = mod.friendCalendars;
+      this.setState({
+        polls: JSON.parse(JSON.stringify(mod.initialPolls)),
+        friendAccess: JSON.parse(JSON.stringify(mod.friendAccessOverrides)),
+        incomingRequests: JSON.parse(JSON.stringify(mod.initialIncomingRequests)),
+        standingAccess: JSON.parse(JSON.stringify(mod.initialStandingAccess))
+      });
+    });
+  }
+
+  accent() { return this.props.accentColor || '#2a5fb0'; }
+  cellSize() { return (this.props.calendarDensity || 'airy') === 'compact' ? 40 : 50; }
+
+  // ---------- Calendar ----------
+  setTab(tab) { this.setState({ activeTab: tab, friendsScreen: 'list', pollsScreen: 'list' }); }
+  prevMonth() { this.setState(s => ({ calMonthOffset: s.calMonthOffset - 1, selectedCalDate: null })); }
+  nextMonth() { this.setState(s => ({ calMonthOffset: s.calMonthOffset + 1, selectedCalDate: null })); }
+
+  selectCalDay(ds) {
+    this.setState(s => ({ selectedCalDate: ds, calNoteDraft: (s.calStatuses[ds] && s.calStatuses[ds].note) || '' }));
+  }
+  closeDayPanel() { this.setState({ selectedCalDate: null, calNoteDraft: '' }); }
+
+  cycleCalDay(ds) {
+    const order = [null, 'free', 'busy', 'maybe'];
+    this.setState(s => {
+      const cur = s.calStatuses[ds] ? (s.calStatuses[ds].status || null) : null;
+      const next = order[(order.indexOf(cur) + 1) % order.length];
+      const prevNote = (s.calStatuses[ds] && s.calStatuses[ds].note) || '';
+      const map = { ...s.calStatuses };
+      if (!next && !prevNote) delete map[ds]; else map[ds] = { status: next, note: prevNote };
+      return { calStatuses: map, selectedCalDate: ds, calNoteDraft: prevNote };
+    });
+  }
+
+  setCalStatus(ds, status) {
+    this.setState(s => {
+      const prevNote = (s.calStatuses[ds] && s.calStatuses[ds].note) || '';
+      const map = { ...s.calStatuses };
+      map[ds] = { status, note: prevNote };
+      return { calStatuses: map };
+    });
+  }
+
+  clearCalStatus(ds) {
+    this.setState(s => {
+      const prevNote = (s.calStatuses[ds] && s.calStatuses[ds].note) || '';
+      const map = { ...s.calStatuses };
+      if (!prevNote) delete map[ds]; else map[ds] = { status: null, note: prevNote };
+      return { calStatuses: map };
+    });
+  }
+
+  onNoteChange(e) { this.setState({ calNoteDraft: e.target.value }); }
+  saveCalNote() {
+    this.setState(s => {
+      const ds = s.selectedCalDate;
+      if (!ds) return null;
+      const map = { ...s.calStatuses };
+      const status = map[ds] ? map[ds].status : null;
+      if (!status && !s.calNoteDraft) { delete map[ds]; }
+      else map[ds] = { status, note: s.calNoteDraft };
+      return { calStatuses: map };
+    });
+  }
+
+  buildCalGrid() {
+    const year = 2026, baseMonth = 6 + this.state.calMonthOffset;
+    const d = new Date(year, baseMonth, 1);
+    const y = d.getFullYear(), m = d.getMonth();
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    const startWeekday = new Date(y, m, 1).getDay();
+    const todayStr = '2026-07-14';
+    const cells = [];
+    for (let i = 0; i < startWeekday; i++) cells.push(null);
+    for (let day = 1; day <= daysInMonth; day++) cells.push(dateStr(y, m, day));
+    while (cells.length % 7 !== 0) cells.push(null);
+    const size = this.cellSize();
+    return {
+      monthLabel: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+      cells: cells.map((ds, i) => {
+        if (!ds) return { key: 'pad' + i, dayLabel: '', wrapStyle: { border: 'none', background: 'transparent', height: size }, numStyle: {}, dotStyle: {}, onClick: () => {} };
+        const day = Number(ds.slice(-2));
+        const entry = this.state.calStatuses[ds];
+        const status = entry ? entry.status : null;
+        const isToday = ds === todayStr;
+        const isSelected = ds === this.state.selectedCalDate;
+        const dotStyle = status === 'busy'
+          ? { width: 15, height: 15, borderRadius: '50%', background: BUSY }
+          : status === 'maybe'
+            ? { width: 15, height: 15, borderRadius: '50%', boxSizing: 'border-box', border: `2px solid ${MAYBE}`, background: `linear-gradient(90deg, ${MAYBE} 50%, transparent 50%)` }
+            : status === 'free'
+              ? { width: 15, height: 15, borderRadius: '50%', boxSizing: 'border-box', border: `2px solid ${FREE}` }
+              : { width: 5, height: 5, borderRadius: '50%', background: '#d8d3c6' };
+        return {
+          key: ds, dayLabel: String(day),
+          wrapStyle: { border: isSelected ? `1.5px solid ${this.accent()}` : '1.5px solid transparent', borderRadius: 14, background: 'transparent', cursor: 'pointer', height: size, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 0 },
+          numStyle: { fontSize: 13, color: isToday ? this.accent() : '#2a2622', fontWeight: isToday ? 700 : 400 },
+          dotStyle,
+          onClick: () => this.cycleCalDay(ds)
+        };
+      })
+    };
+  }
+
+  // ---------- Polls: list ----------
+  myInvitee(poll) { return poll.invitees.find(i => i.userId === 'u0'); }
+
+  buildPollCards() {
+    return this.state.polls.map(poll => {
+      const mine = this.myInvitee(poll);
+      const pendingCount = poll.invitees.filter(i => i.status === 'invited').length;
+      const needsResponse = mine && mine.status === 'invited';
+      return {
+        key: poll.id,
+        title: poll.title,
+        dateRangeLabel: fmtRangeLabel(poll.rangeStart, poll.rangeEnd),
+        memberSummary: `${poll.invitees.length} invited · ${poll.invitees.length - pendingCount} responded`,
+        badgeLabel: needsResponse ? 'Respond' : 'View results',
+        badgeStyle: { fontSize: 11, fontWeight: 600, padding: '4px 9px', borderRadius: 20, color: needsResponse ? '#fff' : TEXT, background: needsResponse ? this.accent() : '#f0eee9' },
+        onOpen: () => this.openPoll(poll.id)
+      };
+    });
+  }
+
+  openPoll(id) {
+    const poll = this.state.polls.find(p => p.id === id);
+    const mine = this.myInvitee(poll);
+    if (mine && mine.status === 'invited') {
+      this.setState({ selectedPollId: id, pollsScreen: 'respond', respondDraft: {} });
+    } else {
+      this.setState({ selectedPollId: id, pollsScreen: 'results' });
+    }
+  }
+  backToList() { this.setState({ pollsScreen: 'list', selectedPollId: null }); }
+
+  // ---------- Polls: create ----------
+  startCreate() {
+    this.setState({ pollsScreen: 'create', createForm: { title: '', note: '', start: '', end: '', friendSel: {}, phoneChips: [], phoneInput: '', step: 'form' } });
+  }
+  updateCreate(field, val) { this.setState(s => ({ createForm: { ...s.createForm, [field]: val } })); }
+  toggleFriendSel(id) {
+    this.setState(s => ({ createForm: { ...s.createForm, friendSel: { ...s.createForm.friendSel, [id]: !s.createForm.friendSel[id] } } }));
+  }
+  addPhoneChip() {
+    this.setState(s => {
+      const v = s.createForm.phoneInput.trim();
+      if (!v) return null;
+      return { createForm: { ...s.createForm, phoneChips: [...s.createForm.phoneChips, v], phoneInput: '' } };
+    });
+  }
+  removePhoneChip(idx) {
+    this.setState(s => ({ createForm: { ...s.createForm, phoneChips: s.createForm.phoneChips.filter((_, i) => i !== idx) } }));
+  }
+  goToSend() { this.setState(s => ({ createForm: { ...s.createForm, step: 'sent' } })); }
+  backToCreateForm() { this.setState(s => ({ createForm: { ...s.createForm, step: 'form' } })); }
+
+  finishCreate() {
+    const cf = this.state.createForm;
+    const friends = this.friends || [];
+    const selectedFriends = friends.filter(f => cf.friendSel[f.id]);
+    const invitees = [
+      { id: 'i_me', userId: 'u0', name: 'You', status: 'responded' },
+      ...selectedFriends.map(f => ({ id: 'i_' + f.id, userId: f.id, name: f.displayName, status: 'invited' })),
+      ...cf.phoneChips.map((ph, idx) => ({ id: 'i_ph' + idx, userId: null, phone: ph, name: ph, status: 'invited' }))
+    ];
+    const newPoll = { id: 'p' + Date.now(), title: cf.title || 'Untitled poll', note: cf.note, creatorId: 'u0', rangeStart: cf.start, rangeEnd: cf.end, invitees, responses: {} };
+    this.setState(s => ({ polls: [newPoll, ...s.polls], pollsScreen: 'list' }));
+  }
+
+  // ---------- Polls: respond ----------
+  setRespondStatus(date, status) {
+    this.setState(s => ({ respondDraft: { ...s.respondDraft, [date]: { status, note: (s.respondDraft[date] && s.respondDraft[date].note) || '' } } }));
+  }
+  submitRespond() {
+    const poll = this.state.polls.find(p => p.id === this.state.selectedPollId);
+    if (!poll) return;
+    const mine = this.myInvitee(poll);
+    this.setState(s => {
+      const polls = s.polls.map(p => {
+        if (p.id !== poll.id) return p;
+        const responses = { ...p.responses, [mine.id]: Object.fromEntries(Object.entries(s.respondDraft).map(([d, v]) => [d, v.status])) };
+        const invitees = p.invitees.map(inv => inv.id === mine.id ? { ...inv, status: 'responded' } : inv);
+        return { ...p, responses, invitees };
+      });
+      return { polls, pollsScreen: 'results' };
+    });
+  }
+
+  // ---------- Best overlap ----------
+  computeBest(days, invitees, responses) {
+    const counts = days.map(d => invitees.filter(inv => responses[inv.id] && responses[inv.id][d] === 'free').length);
+    const max = Math.max(0, ...counts);
+    if (max === 0) return null;
+    let bestStart = -1, bestLen = 0, curStart = -1, curLen = 0;
+    for (let i = 0; i <= counts.length; i++) {
+      if (i < counts.length && counts[i] === max) {
+        if (curLen === 0) curStart = i;
+        curLen++;
+      } else {
+        if (curLen > bestLen) { bestLen = curLen; bestStart = curStart; }
+        curLen = 0;
+      }
+    }
+    return { counts, startIdx: bestStart, endIdx: bestStart + bestLen - 1 };
+  }
+
+  // ---------- Sign in ----------
+  onSignInEmailChange(e) { this.setState({ signInEmail: e.target.value }); }
+  sendSignIn() { if (this.state.signInEmail.includes('@')) this.setState({ signInSent: true }); }
+  resendSignIn() {}
+  continueFromSignIn() { this.setState({ appStage: 'onboarding' }); }
+
+  // ---------- Onboarding ----------
+  toggleContactAdded(id) { this.setState(s => ({ onboardingAdded: { ...s.onboardingAdded, [id]: true } })); }
+  finishOnboarding() { this.setState({ appStage: 'app' }); }
+
+  // ---------- Friends nav ----------
+  setFriendsScreen(screen) { this.setState({ friendsScreen: screen }); }
+  goToIncoming() { this.setFriendsScreen('incoming'); }
+  goToWhoCanSee() { this.setFriendsScreen('whoCanSee'); }
+  backToFriends() { this.setState({ friendsScreen: 'list', viewFriendId: null }); }
+
+  openRequestAccess(friendId) { this.setState({ friendsScreen: 'request', requestForm: { friendId, scope: 'range', start: '', end: '', sent: false } }); }
+  setRequestScope(scope) { this.setState(s => ({ requestForm: { ...s.requestForm, scope } })); }
+  updateRequestField(field, val) { this.setState(s => ({ requestForm: { ...s.requestForm, [field]: val } })); }
+  sendRequestAccess() {
+    this.setState(s => ({ requestForm: { ...s.requestForm, sent: true }, outgoingPending: { ...s.outgoingPending, [s.requestForm.friendId]: true } }));
+  }
+
+  openViewCalendar(friendId) { this.setState({ friendsScreen: 'viewCalendar', viewFriendId: friendId }); }
+
+  startApprove(id) { this.setState({ approvingId: id, approvingLevel: 'full' }); }
+  setApprovingLevel(level) { this.setState({ approvingLevel: level }); }
+  confirmApprove() {
+    this.setState(s => {
+      const req = s.incomingRequests.find(r => r.id === s.approvingId);
+      if (!req) return null;
+      const standing = [...s.standingAccess, { id: 's' + Date.now(), friendId: req.requesterId, friendName: req.requesterName, detailLevel: s.approvingLevel === 'full' ? 'full' : 'overlap_only' }];
+      return { standingAccess: standing, incomingRequests: s.incomingRequests.filter(r => r.id !== req.id), approvingId: null };
+    });
+  }
+  denyRequest(id) { this.setState(s => ({ incomingRequests: s.incomingRequests.filter(r => r.id !== id) })); }
+  revokeStanding(id) { this.setState(s => ({ standingAccess: s.standingAccess.filter(r => r.id !== id) })); }
+
+  buildFriendCalGrid(friendId) {
+    const year = 2026, month = 6; // fixed July 2026 for the demo
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const startWeekday = new Date(year, month, 1).getDay();
+    const cells = [];
+    for (let i = 0; i < startWeekday; i++) cells.push(null);
+    for (let day = 1; day <= daysInMonth; day++) cells.push(dateStr(year, month, day));
+    while (cells.length % 7 !== 0) cells.push(null);
+    const access = this.state.friendAccess[friendId] || { level: 'full' };
+    const friendCal = (this.friendCalendars && this.friendCalendars[friendId]) || {};
+    const mine = this.state.calStatuses;
+    return cells.map((ds, i) => {
+      if (!ds) return { key: 'pad' + i, dayLabel: '', wrapStyle: { border: 'none', height: 44 }, numStyle: {}, dotStyle: {} };
+      const day = Number(ds.slice(-2));
+      const theirStatus = friendCal[ds] || null;
+      const myStatus = mine[ds] ? mine[ds].status : null;
+      let dotStyle;
+      if (access.level === 'full') {
+        dotStyle = theirStatus === 'busy'
+          ? { width: 15, height: 15, borderRadius: '50%', background: BUSY }
+          : theirStatus === 'maybe'
+            ? { width: 15, height: 15, borderRadius: '50%', boxSizing: 'border-box', border: `2px solid ${MAYBE}`, background: `linear-gradient(90deg, ${MAYBE} 50%, transparent 50%)` }
+            : theirStatus === 'free'
+              ? { width: 15, height: 15, borderRadius: '50%', boxSizing: 'border-box', border: `2px solid ${FREE}` }
+              : { width: 5, height: 5, borderRadius: '50%', background: '#d8d3c6' };
+      } else {
+        const mutualFree = theirStatus === 'free' && myStatus === 'free';
+        dotStyle = mutualFree
+          ? { width: 15, height: 15, borderRadius: '50%', background: FREE }
+          : { width: 5, height: 5, borderRadius: '50%', background: '#d8d3c6' };
+      }
+      return {
+        key: ds, dayLabel: String(day),
+        wrapStyle: { height: 44, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 },
+        numStyle: { fontSize: 13, color: '#2a2622' },
+        dotStyle
+      };
+    });
+  }
+
+  renderVals() {
+    const accent = this.accent();
+    const friends = this.friends || [];
+    const { monthLabel, cells } = this.buildCalGrid();
+
+    const selectedCalDate = this.state.selectedCalDate;
+    const selEntry = selectedCalDate ? this.state.calStatuses[selectedCalDate] : null;
+    const selStatus = selEntry ? selEntry.status : null;
+    const statusPills = ['free', 'maybe', 'busy'].map(st => ({
+      key: st, label: st.charAt(0).toUpperCase() + st.slice(1),
+      onClick: () => this.setCalStatus(selectedCalDate, st),
+      style: {
+        flex: 1, padding: '9px 0', borderRadius: 10, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+        border: selStatus === st ? 'none' : '1px solid #e9e4d8',
+        background: selStatus === st ? (st === 'busy' ? BUSY : st === 'maybe' ? MAYBE : FREE) : '#fff',
+        color: selStatus === st ? '#fff' : TEXT
+      }
+    }));
+
+    const polls = this.state.polls;
+    const pollCards = this.buildPollCards();
+
+    const cf = this.state.createForm;
+    const friendRows = friends.map(f => {
+      const sel = !!cf.friendSel[f.id];
+      return {
+        key: f.id, name: f.displayName,
+        onToggle: () => this.toggleFriendSel(f.id),
+        rowStyle: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: `1px solid ${sel ? accent : BORDER}`, borderRadius: 12, padding: '11px 14px', background: sel ? '#eef2f8' : '#fff', cursor: 'pointer', fontSize: 13.5, color: TEXT },
+        checkStyle: { width: 16, height: 16, borderRadius: '50%', border: `2px solid ${sel ? accent : '#cfc9bd'}`, background: sel ? accent : 'transparent' }
+      };
+    });
+    const phoneChips = cf.phoneChips.map((v, i) => ({ key: i, value: v, onRemove: () => this.removePhoneChip(i) }));
+    const sendDisabled = !(cf.title && cf.start && cf.end && (friends.some(f => cf.friendSel[f.id]) || cf.phoneChips.length));
+    const sendButtonStyle = { width: '100%', border: 'none', borderRadius: 10, padding: 13, background: sendDisabled ? '#d8d3c6' : accent, color: '#fff', fontSize: 14, fontWeight: 600, cursor: sendDisabled ? 'default' : 'pointer', marginTop: 4, marginBottom: 24 };
+
+    const rangeLabel = cf.start && cf.end ? fmtRangeLabel(cf.start, cf.end) : '';
+    const sendTargets = [
+      ...friends.filter(f => cf.friendSel[f.id]).map(f => ({ name: f.displayName, phone: f.phone })),
+      ...cf.phoneChips.map(ph => ({ name: ph, phone: ph }))
+    ];
+    const msg = `You're invited to "${cf.title}" (${rangeLabel}) on Loose Days — mark your availability: https://loosedays.app/p/abc123`;
+    const sendRows = sendTargets.map((t, i) => ({
+      key: i, name: t.name, phone: t.phone,
+      smsLink: `sms:${t.phone.replace(/\s/g, '')}?&body=${encodeURIComponent(msg)}`,
+      waLink: `https://wa.me/${t.phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`
+    }));
+
+    const selectedPoll = polls.find(p => p.id === this.state.selectedPollId);
+
+    let respondDays = [];
+    if (this.state.pollsScreen === 'respond' && selectedPoll) {
+      const days = dateRangeArr(selectedPoll.rangeStart, selectedPoll.rangeEnd);
+      respondDays = days.map(d => {
+        const cur = this.state.respondDraft[d] ? this.state.respondDraft[d].status : null;
+        return {
+          key: d, label: fmtWeekdayShort(d),
+          pills: ['free', 'maybe', 'busy'].map(st => ({
+            key: st, label: st.charAt(0).toUpperCase() + st.slice(1),
+            onClick: () => this.setRespondStatus(d, st),
+            style: {
+              flex: 1, padding: '9px 0', borderRadius: 10, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+              border: cur === st ? 'none' : '1px solid #e9e4d8',
+              background: cur === st ? (st === 'busy' ? BUSY : st === 'maybe' ? MAYBE : FREE) : '#fff',
+              color: cur === st ? '#fff' : TEXT
+            }
+          }))
+        };
+      });
+    }
+    const submitDisabled = respondDays.length === 0 || respondDays.some(d => !this.state.respondDraft[d.key]);
+    const submitButtonStyle = { width: '100%', border: 'none', borderRadius: 10, padding: 13, background: submitDisabled ? '#d8d3c6' : accent, color: '#fff', fontSize: 14, fontWeight: 600, cursor: submitDisabled ? 'default' : 'pointer', marginBottom: 24 };
+
+    let resultsPeople = [], resultsRows = [], hasBestRange = false, bestRangeLabel = '', resultsGridStyle = {};
+    if (this.state.pollsScreen === 'results' && selectedPoll) {
+      const days = dateRangeArr(selectedPoll.rangeStart, selectedPoll.rangeEnd);
+      const invitees = selectedPoll.invitees;
+      resultsPeople = invitees.map(inv => ({ key: inv.id, initials: inv.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() }));
+      const best = this.computeBest(days, invitees, selectedPoll.responses);
+      hasBestRange = !!best;
+      if (best) bestRangeLabel = best.startIdx === best.endIdx ? fmtShort(days[best.startIdx]) : `${fmtShort(days[best.startIdx])} – ${fmtShort(days[best.endIdx])}`;
+      resultsGridStyle = { display: 'grid', gridTemplateColumns: `64px repeat(${invitees.length}, 40px)`, columnGap: 4, rowGap: 6, alignItems: 'center' };
+      resultsRows = days.map((d, di) => {
+        const inBest = best && di >= best.startIdx && di <= best.endIdx;
+        return {
+          key: d,
+          label: fmtShort(d),
+          labelStyle: { fontSize: 11.5, color: TEXT, fontWeight: inBest ? 700 : 400, background: inBest ? '#eef3ea' : 'transparent', borderRadius: 6, padding: '6px 4px' },
+          cells: invitees.map(inv => {
+            const st = selectedPoll.responses[inv.id] && selectedPoll.responses[inv.id][d];
+            const color = st === 'busy' ? BUSY : st === 'maybe' ? MAYBE : st === 'free' ? FREE : PENDING;
+            return { key: inv.id + d, style: { width: 32, height: 32, borderRadius: 8, background: color, margin: '0 auto', border: inBest ? `2px solid ${accent}` : 'none', boxSizing: 'border-box' } };
+          })
+        };
+      });
+    }
+
+    const activeTab = this.state.activeTab;
+    const tabs = [
+      { key: 'calendar', label: 'Calendar' },
+      { key: 'friends', label: 'Friends' },
+      { key: 'polls', label: 'Polls' }
+    ].map((t, i) => {
+      const active = activeTab === t.key;
+      const shape = i === 0
+        ? { width: 9, height: 9, borderRadius: '50%', background: active ? accent : '#c9c2b3' }
+        : i === 1
+          ? { width: 9, height: 9, borderRadius: 2, background: active ? accent : '#c9c2b3' }
+          : { width: 8, height: 8, background: active ? accent : '#c9c2b3', transform: 'rotate(45deg)' };
+      return {
+        key: t.key, label: t.label,
+        onClick: () => this.setTab(t.key),
+        shapeStyle: shape,
+        labelStyle: { fontSize: 10.5, color: active ? TEXT : '#a39d90', fontWeight: active ? 600 : 400 }
+      };
+    });
+
+    // ---------- Sign in / onboarding ----------
+    const isSignInStage = this.state.appStage === 'signin';
+    const isOnboardingStage = this.state.appStage === 'onboarding';
+    const isAppStage = this.state.appStage === 'app';
+    const signInDisabled = !this.state.signInEmail.includes('@');
+    const signInButtonStyle = { width: '100%', border: 'none', borderRadius: 10, padding: 13, background: signInDisabled ? '#d8d3c6' : accent, color: '#fff', fontSize: 14, fontWeight: 600, cursor: signInDisabled ? 'default' : 'pointer' };
+    const contacts = this.contacts || [];
+    const contactRows = contacts.map(c => {
+      const added = !!this.state.onboardingAdded[c.id];
+      const msg = `Join me on Loose Days — a calendar for finding time with friends: https://loosedays.app/join`;
+      return {
+        key: c.id, name: c.name, isMatched: c.matched, isUnmatched: !c.matched,
+        subLabel: c.matched ? `${c.phone} · On Loose Days` : c.phone,
+        addButtonLabel: added ? 'Added ✓' : 'Add friend',
+        addButtonStyle: { border: added ? 'none' : `1px solid ${accent}`, borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: added ? 'default' : 'pointer', background: added ? '#eef2f8' : '#fff', color: added ? accent : accent },
+        onAdd: () => this.toggleContactAdded(c.id),
+        smsLink: `sms:${c.phone.replace(/\s/g, '')}?&body=${encodeURIComponent(msg)}`,
+        waLink: `https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`
+      };
+    });
+
+    // ---------- Friends ----------
+    const friendsScreen = this.state.friendsScreen;
+    const isFriendsListScreen = activeTab === 'friends' && friendsScreen === 'list';
+    const isRequestAccessScreen = activeTab === 'friends' && friendsScreen === 'request';
+    const isIncomingScreen = activeTab === 'friends' && friendsScreen === 'incoming';
+    const isWhoCanSeeScreen = activeTab === 'friends' && friendsScreen === 'whoCanSee';
+    const isViewFriendCalendarScreen = activeTab === 'friends' && friendsScreen === 'viewCalendar';
+
+    const incomingRequests = this.state.incomingRequests;
+    const standingAccess = this.state.standingAccess;
+    const incomingCountLabel = incomingRequests.length ? `${incomingRequests.length} pending` : 'None pending';
+    const standingCountLabel = standingAccess.length ? `${standingAccess.length} people` : 'Nobody yet';
+
+    const friendListRows = friends.map(f => {
+      const access = this.state.friendAccess[f.id];
+      const pending = this.state.outgoingPending[f.id];
+      const actionLabel = access ? 'View calendar' : pending ? 'Requested' : 'Request access';
+      const levelLabel = access ? (access.level === 'full' ? 'Full access' : 'Overlap-only access') : '';
+      const subLabel = access
+        ? (access.scope === 'range' ? `${levelLabel} · through ${fmtShort(access.rangeEnd)}` : `${levelLabel} · ongoing`)
+        : pending ? 'Waiting on approval' : 'No access yet';
+      return {
+        key: f.id, name: f.displayName, subLabel, actionLabel,
+        actionStyle: { border: access ? 'none' : `1px solid ${pending ? BORDER : accent}`, borderRadius: 8, padding: '8px 12px', fontSize: 12, fontWeight: 600, cursor: pending ? 'default' : 'pointer', background: access ? '#f0eee9' : '#fff', color: pending ? '#a39d90' : accent },
+        onAction: access ? () => this.openViewCalendar(f.id) : pending ? () => {} : () => this.openRequestAccess(f.id),
+        showRequestMore: access && access.scope === 'range' && !pending,
+        onRequestMore: () => this.openRequestAccess(f.id)
+      };
+    });
+
+    const rf = this.state.requestForm;
+    const requestFriend = friends.find(f => f.id === rf.friendId);
+    const requestFriendName = requestFriend ? requestFriend.displayName : '';
+    const scopeIsRange = rf.scope === 'range';
+    const pillBase = { flex: 1, padding: '10px 0', borderRadius: 10, fontSize: 12.5, fontWeight: 600, cursor: 'pointer' };
+    const scopeRangeStyle = { ...pillBase, border: scopeIsRange ? 'none' : `1px solid ${BORDER}`, background: scopeIsRange ? accent : '#fff', color: scopeIsRange ? '#fff' : TEXT };
+    const scopeStandingStyle = { ...pillBase, border: !scopeIsRange ? 'none' : `1px solid ${BORDER}`, background: !scopeIsRange ? accent : '#fff', color: !scopeIsRange ? '#fff' : TEXT };
+    const requestSendDisabled = scopeIsRange ? !(rf.start && rf.end) : false;
+    const requestSendButtonStyle = { width: '100%', border: 'none', borderRadius: 10, padding: 13, background: requestSendDisabled ? '#d8d3c6' : accent, color: '#fff', fontSize: 14, fontWeight: 600, cursor: requestSendDisabled ? 'default' : 'pointer' };
+    const reqMsg = `Can you approve my request to see your Loose Days calendar? https://loosedays.app/access/req1`;
+    const requestSmsLink = requestFriend ? `sms:${requestFriend.phone.replace(/\s/g, '')}?&body=${encodeURIComponent(reqMsg)}` : '';
+    const requestWaLink = requestFriend ? `https://wa.me/${requestFriend.phone.replace(/\D/g, '')}?text=${encodeURIComponent(reqMsg)}` : '';
+
+    const incomingRows = incomingRequests.map(req => ({
+      key: req.id, requesterName: req.requesterName,
+      scopeLabel: req.scope === 'standing' ? 'Wants ongoing access' : `Wants access ${fmtRangeLabel(req.rangeStart, req.rangeEnd)}`,
+      isChoosingLevel: this.state.approvingId === req.id, isPending: this.state.approvingId !== req.id,
+      onApprove: () => this.startApprove(req.id), onDeny: () => this.denyRequest(req.id),
+      fullPillStyle: { ...pillBase, border: this.state.approvingLevel === 'full' ? 'none' : `1px solid ${BORDER}`, background: this.state.approvingLevel === 'full' ? accent : '#fff', color: this.state.approvingLevel === 'full' ? '#fff' : TEXT },
+      overlapPillStyle: { ...pillBase, border: this.state.approvingLevel === 'overlap' ? 'none' : `1px solid ${BORDER}`, background: this.state.approvingLevel === 'overlap' ? accent : '#fff', color: this.state.approvingLevel === 'overlap' ? '#fff' : TEXT },
+      onPickFull: () => this.setApprovingLevel('full'), onPickOverlap: () => this.setApprovingLevel('overlap'),
+      onConfirm: () => this.confirmApprove()
+    }));
+
+    const standingRows = standingAccess.map(s => ({
+      key: s.id, friendName: s.friendName, detailLabel: s.detailLevel === 'full' ? 'Full status' : 'Overlap only',
+      onRevoke: () => this.revokeStanding(s.id)
+    }));
+
+    const viewFriendId = this.state.viewFriendId;
+    const viewFriend = friends.find(f => f.id === viewFriendId);
+    const viewAccess = viewFriendId ? this.state.friendAccess[viewFriendId] : null;
+    const viewFriendCells = viewFriendId ? this.buildFriendCalGrid(viewFriendId) : [];
+    const viewFriendLegend = viewAccess && viewAccess.level === 'full'
+      ? [
+        { key: 'free', label: 'free', dotStyle: { width: 12, height: 12, borderRadius: '50%', boxSizing: 'border-box', border: `2px solid ${FREE}` } },
+        { key: 'maybe', label: 'maybe', dotStyle: { width: 12, height: 12, borderRadius: '50%', boxSizing: 'border-box', border: `2px solid ${MAYBE}`, background: `linear-gradient(90deg, ${MAYBE} 50%, transparent 50%)` } },
+        { key: 'busy', label: 'busy', dotStyle: { width: 12, height: 12, borderRadius: '50%', background: BUSY } },
+        { key: 'unset', label: 'not set', dotStyle: { width: 5, height: 5, borderRadius: '50%', background: '#d8d3c6', margin: 3.5 } }
+      ]
+      : [
+        { key: 'both', label: 'both free', dotStyle: { width: 12, height: 12, borderRadius: '50%', background: FREE } },
+        { key: 'unknown', label: 'unavailable / unknown', dotStyle: { width: 5, height: 5, borderRadius: '50%', background: '#d8d3c6', margin: 3.5 } }
+      ];
+
+    return {
+      accent,
+      isSignInStage, signInSent: this.state.signInSent, signInNotSent: !this.state.signInSent,
+      signInEmail: this.state.signInEmail, onSignInEmailChange: (e) => this.onSignInEmailChange(e),
+      signInDisabled, signInButtonStyle, sendSignIn: () => this.sendSignIn(),
+      resendSignIn: () => this.resendSignIn(), continueFromSignIn: () => this.continueFromSignIn(),
+      isOnboardingStage, contactRows, finishOnboarding: () => this.finishOnboarding(),
+      isAppStage,
+      isFriendsListScreen, isRequestAccessScreen, isIncomingScreen, isWhoCanSeeScreen, isViewFriendCalendarScreen,
+      incomingCountLabel, standingCountLabel, friendListRows,
+      goToIncoming: () => this.goToIncoming(), goToWhoCanSee: () => this.goToWhoCanSee(), backToFriends: () => this.backToFriends(),
+      requestFriendName, requestSent: rf.sent, requestNotSent: !rf.sent, requestSmsLink, requestWaLink,
+      scopeIsRange, scopeRangeStyle, scopeStandingStyle,
+      setScopeRange: () => this.setRequestScope('range'), setScopeStanding: () => this.setRequestScope('standing'),
+      requestStart: rf.start, requestEnd: rf.end,
+      onRequestStartChange: (e) => this.updateRequestField('start', e.target.value),
+      onRequestEndChange: (e) => this.updateRequestField('end', e.target.value),
+      requestSendDisabled, requestSendButtonStyle, sendRequest: () => this.sendRequestAccess(),
+      incomingRows, noIncoming: incomingRows.length === 0,
+      standingRows, noStanding: standingRows.length === 0,
+      viewFriendName: viewFriend ? viewFriend.displayName : '',
+      viewFriendLevelLabel: viewAccess ? (viewAccess.level === 'full' ? 'Full access' : 'Overlap only') : '',
+      viewFriendHint: viewAccess && viewAccess.level === 'full' ? "You can see their full status and notes." : "Only days you're both free are highlighted — their busy or maybe days stay private.",
+      viewFriendCells, viewFriendLegend,
+      isCalendarTab: activeTab === 'calendar',
+      isFriendsTab: activeTab === 'friends',
+      isPollsListScreen: activeTab === 'polls' && this.state.pollsScreen === 'list',
+      isPollsCreateFormStep: activeTab === 'polls' && this.state.pollsScreen === 'create' && cf.step === 'form',
+      isPollsCreateSentStep: activeTab === 'polls' && this.state.pollsScreen === 'create' && cf.step === 'sent',
+      isPollsRespondScreen: activeTab === 'polls' && this.state.pollsScreen === 'respond',
+      isPollsResultsScreen: activeTab === 'polls' && this.state.pollsScreen === 'results',
+      monthLabel, weekLabels: WEEKDAY_LABELS, calCells: cells,
+      prevMonth: () => this.prevMonth(), nextMonth: () => this.nextMonth(),
+      hasSelectedDay: !!selectedCalDate,
+      selectedDayLabel: selectedCalDate ? fmtWeekdayShort(selectedCalDate) : '',
+      statusPills, calNoteDraft: this.state.calNoteDraft,
+      onNoteChange: (e) => this.onNoteChange(e), saveCalNote: () => this.saveCalNote(), closeDayPanel: () => this.closeDayPanel(),
+      clearSelectedDay: () => this.clearCalStatus(selectedCalDate),
+      pollCards, startCreate: () => this.startCreate(), backToList: () => this.backToList(),
+      createTitle: cf.title, createStart: cf.start, createEnd: cf.end, createNote: cf.note,
+      onTitleChange: (e) => this.updateCreate('title', e.target.value),
+      onStartChange: (e) => this.updateCreate('start', e.target.value),
+      onEndChange: (e) => this.updateCreate('end', e.target.value),
+      onCreateNoteChange: (e) => this.updateCreate('note', e.target.value),
+      friendRows, phoneInput: cf.phoneInput,
+      onPhoneInputChange: (e) => this.updateCreate('phoneInput', e.target.value),
+      addPhoneChip: () => this.addPhoneChip(), phoneChips,
+      sendDisabled, sendButtonStyle, goToSend: () => this.goToSend(),
+      backToCreateForm: () => this.backToCreateForm(), sendRows, finishCreate: () => this.finishCreate(),
+      respondPollTitle: selectedPoll ? selectedPoll.title : '', respondPollRange: selectedPoll ? fmtRangeLabel(selectedPoll.rangeStart, selectedPoll.rangeEnd) : '',
+      respondDays, submitDisabled, submitButtonStyle, submitRespond: () => this.submitRespond(),
+      resultsPollTitle: selectedPoll ? selectedPoll.title : '', resultsPollRange: selectedPoll ? fmtRangeLabel(selectedPoll.rangeStart, selectedPoll.rangeEnd) : '',
+      hasBestRange, bestRangeLabel, resultsPeople, resultsRows, resultsGridStyle,
+      tabs
+    };
+  }
+}
+
+</script>
+</body>
+</html>

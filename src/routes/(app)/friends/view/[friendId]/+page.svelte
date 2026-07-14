@@ -1,0 +1,87 @@
+<script lang="ts">
+	import { page } from '$app/state';
+	import { resolve } from '$app/paths';
+	import BackHeader from '$lib/components/BackHeader.svelte';
+	import CalendarMonthGrid from '$lib/components/CalendarMonthGrid.svelte';
+	import StatusDot from '$lib/components/StatusDot.svelte';
+	import { api } from '$lib/api';
+	import { db } from '$lib/db.svelte';
+	import { dateStr } from '$lib/format';
+	import type { Friend } from '$lib/types';
+
+	let friends = $state<Friend[]>([]);
+	let friendCal = $state<Record<string, string>>({});
+
+	const friendId = $derived(page.params.friendId!);
+
+	$effect(() => {
+		api.getFriends().then((f) => (friends = f));
+	});
+	$effect(() => {
+		api.getFriendCalendar(friendId).then((c) => (friendCal = c));
+	});
+
+	const friend = $derived(friends.find((f) => f.id === friendId));
+	const access = $derived(db.friendAccess[friendId]);
+
+	type CellStatus = 'free' | 'busy' | 'maybe' | 'mutual' | null;
+
+	const grid = $derived.by(() => {
+		// The mock friend calendars only cover July 2026 — show that month.
+		const year = 2026;
+		const month = 6;
+		const daysInMonth = new Date(year, month + 1, 0).getDate();
+		const startWeekday = new Date(year, month, 1).getDay();
+		const cells: { date: string | null; day: string; status: CellStatus }[] = [];
+		for (let i = 0; i < startWeekday; i++) cells.push({ date: null, day: '', status: null });
+		for (let day = 1; day <= daysInMonth; day++) {
+			const ds = dateStr(year, month, day);
+			const theirStatus = friendCal[ds] as 'free' | 'busy' | 'maybe' | undefined;
+			let status: CellStatus;
+			if (access?.level === 'full') {
+				status = theirStatus ?? null;
+			} else {
+				const myStatus = db.calStatuses[ds]?.status ?? null;
+				status = theirStatus === 'free' && myStatus === 'free' ? 'mutual' : null;
+			}
+			cells.push({ date: ds, day: String(day), status });
+		}
+		while (cells.length % 7 !== 0) cells.push({ date: null, day: '', status: null });
+		return cells;
+	});
+
+	const legend = $derived(
+		access?.level === 'full'
+			? [
+					{ status: 'free' as CellStatus, label: 'free' },
+					{ status: 'maybe' as CellStatus, label: 'maybe' },
+					{ status: 'busy' as CellStatus, label: 'busy' },
+					{ status: null as CellStatus, label: 'not set' }
+				]
+			: [
+					{ status: 'mutual' as CellStatus, label: 'both free' },
+					{ status: null as CellStatus, label: 'unavailable / unknown' }
+				]
+	);
+</script>
+
+<BackHeader
+	title={friend?.displayName ?? ''}
+	href={resolve('/friends')}
+	subtitle={access ? (access.level === 'full' ? 'Full access' : 'Overlap only') : ''}
+/>
+<p class="mx-[22px] mt-3 mb-3.5 text-xs leading-relaxed text-subtext-2">
+	{access?.level === 'full'
+		? 'You can see their full status and notes.'
+		: "Only days you're both free are highlighted — their busy or maybe days stay private."}
+</p>
+
+<CalendarMonthGrid cells={grid} cellSize={44} />
+
+<div class="mx-[22px] mt-[18px] mb-5 flex gap-3.5 text-[11px] text-subtext">
+	{#each legend as leg (leg.label)}
+		<div class="flex items-center gap-1.5">
+			<StatusDot status={leg.status} size={12} /><span>{leg.label}</span>
+		</div>
+	{/each}
+</div>

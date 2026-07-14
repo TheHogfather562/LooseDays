@@ -1,0 +1,61 @@
+@import 'tailwindcss';
+
+@theme {
+	--color-page: #f0eee9;
+	--color-card: #fbfaf7;
+	--color-line: #e9e4d8;
+
+	--color-ink: #1a1a1a;
+	--color-ink-soft: #2a2622;
+	--color-subtext: #8a8374;
+	--color-subtext-2: #9a9384;
+	--color-muted: #a39d90;
+	--color-muted-2: #b7b0a1;
+	--color-faint: #d8d3c6;
+	--color-faint-2: #cfc9bd;
+
+	--color-free: #7a9b7e;
+	--color-maybe: #c48a2e;
+	--color-busy: #b0483f;
+	--color-pending: #e5e0d3;
+
+	--color-overlap-bg: #eef3ea;
+	--color-overlap-text: #4d6b52;
+
+	--color-accent: #3f7a5c;
+	--color-avatar: #e7e1d3;
+	--color-tab-inactive: #c9c2b3;
+	--color-danger: #b0483f;
+	--color-panel: #f7f5f0;
+	--color-chip: #f0eee9;
+
+	--font-display: 'Space Grotesk', system-ui, sans-serif;
+	--font-sans: 'Inter', system-ui, sans-serif;
+}
+
+/* Layered so Tailwind utility classes (e.g. text-white on a button-styled <a>)
+   always win over these element defaults regardless of specificity. */
+@layer base {
+	body {
+		margin: 0;
+		background: var(--color-page);
+		font-family: var(--font-sans);
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	a {
+		color: var(--color-accent);
+		text-decoration: none;
+	}
+	a:hover {
+		text-decoration: underline;
+	}
+
+	button {
+		font-family: inherit;
+	}
+
+	::-webkit-scrollbar {
+		display: none;
+	}
+}

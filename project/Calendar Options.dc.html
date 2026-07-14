@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f0eee9;font-family:'Inter',system-ui,sans-serif}
+.dv-turn{padding:40px 44px 60px;border-bottom:1px solid rgba(0,0,0,.08)}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
+.dv-tid{font:600 10px 'IBM Plex Mono',monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px system-ui,sans-serif;color:#1a1a1a}
+.dv-opts{display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:10px}
+.dv-oid{font:600 10.5px 'IBM Plex Mono',monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;flex-direction:column;gap:2px;font:400 12px/1.4 system-ui,sans-serif;color:rgba(0,0,0,.6)}
+.dv-olabel b{color:#1a1a1a;font-weight:600;font-size:13px}
+.dv-card{background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:36px;box-shadow:0 12px 32px rgba(0,0,0,.1);display:flex;flex-direction:column}
+.dv-opt:target .dv-oid{background:#2a5fb0;color:#fff}
+.dv-next{margin:26px 0 0;font:12px/1.6 system-ui,sans-serif;color:rgba(0,0,0,.5);max-width:640px}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">My Calendar — 3 visual directions (warm neutral, cool blue accent)</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a><b>Ledger</b> — engineer-tool feel, monospace dates, letter tags + tick marks, near-monochrome</div>
+<div class="dv-card" style="width:360px;height:760px;overflow:hidden;background:#fbfaf7">{{ phoneA }}</div>
+</div>
+
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a><b>Soft Structured</b> — rounded day cells, ring icons for status, airy card grid</div>
+<div class="dv-card" style="width:360px;height:760px;overflow:hidden;background:#f7f5f0">{{ phoneB }}</div>
+</div>
+
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a><b>Bold Editorial</b> — big display month, color-blocked week rows, confident scale</div>
+<div class="dv-card" style="width:360px;height:760px;overflow:hidden;background:#fbfaf7">{{ phoneC }}</div>
+</div>
+
+</div>
+<p class="dv-next">Try next: "more like <a class="dv-oid" href="#1b">1b</a> but denser" · "mix <a class="dv-oid" href="#1a">1a</a> legend with <a class="dv-oid" href="#1c">1c</a> header" · "go dark theme on <a class="dv-oid" href="#1a">1a</a>"</p>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const seedA = {3:'busy',5:'maybe',6:'maybe',11:'busy',12:'busy',17:'maybe',22:'busy',28:'maybe'};
+    const seedB = {2:'maybe',4:'busy',9:'busy',10:'maybe',15:'busy',20:'maybe',21:'maybe',27:'busy'};
+    const seedC = {1:'maybe',6:'busy',7:'busy',13:'maybe',14:'maybe',19:'busy',24:'busy',25:'maybe'};
+    this.state = { a: seedA, b: seedB, c: seedC };
+    this.order = ['free','busy','maybe'];
+  }
+
+  buildGrid() {
+    const d = new Date(2026, 6, 1); // July 2026
+    const daysInMonth = new Date(2026, 7, 0).getDate();
+    const startWeekday = d.getDay();
+    const cells = [];
+    for (let i = 0; i < startWeekday; i++) cells.push(null);
+    for (let day = 1; day <= daysInMonth; day++) cells.push(day);
+    while (cells.length % 7 !== 0) cells.push(null);
+    return cells;
+  }
+
+  cycle(key, day) {
+    if (!day) return;
+    this.setState(s => {
+      const map = { ...s[key] };
+      const cur = map[day] || 'free';
+      const next = this.order[(this.order.indexOf(cur) + 1) % this.order.length];
+      if (next === 'free') delete map[day]; else map[day] = next;
+      return { [key]: map };
+    });
+  }
+
+  statusColor(status) {
+    if (status === 'busy') return '#b0483f';
+    if (status === 'maybe') return '#c48a2e';
+    return '#7a9b7e';
+  }
+
+  // ---- Direction A: Ledger ----
+  renderDayA(day, status) {
+    const label = status === 'busy' ? 'B' : status === 'maybe' ? 'M' : day ? 'F' : '';
+    const color = this.statusColor(status || 'free');
+    return React.createElement('button', {
+      key: 'a'+day, onClick: () => this.cycle('a', day),
+      style: {
+        border: 'none', background: 'transparent', cursor: day ? 'pointer' : 'default',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        height: 46, padding: 0, fontFamily: "'IBM Plex Mono', monospace"
+      }
+    }, day && React.createElement('span', { style: { fontSize: 13, color: '#2a2622', fontWeight: 500 } }, day),
+       day && React.createElement('span', { style: { fontSize: 9, marginTop: 3, color, fontWeight: 600, letterSpacing: '0.02em' } }, status ? label : '·'));
+  }
+
+  // ---- Direction B: Soft Structured ----
+  renderDayB(day, status) {
+    const color = this.statusColor(status || 'free');
+    const ringStyle = status === 'busy'
+      ? { background: color }
+      : status === 'maybe'
+        ? { background: `linear-gradient(90deg, ${color} 50%, transparent 50%)`, border: `2px solid ${color}` }
+        : { border: '2px solid #cfc9bd', background: 'transparent' };
+    return React.createElement('button', {
+      key: 'b'+day, onClick: () => this.cycle('b', day),
+      style: { border: 'none', background: 'transparent', cursor: day ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: 50, padding: 0 }
+    },
+      day && React.createElement('span', { style: { fontSize: 13, color: '#2a2622' } }, day),
+      day && React.createElement('span', { style: { width: 16, height: 16, borderRadius: '50%', boxSizing: 'border-box', ...ringStyle } })
+    );
+  }
+
+  // ---- Direction C: Bold Editorial ----
+  renderDayC(day, status) {
+    const color = this.statusColor(status || 'free');
+    const bg = status ? color : 'transparent';
+    const textColor = status ? '#fff' : '#2a2622';
+    return React.createElement('button', {
+      key: 'c'+day, onClick: () => this.cycle('c', day),
+      style: {
+        border: status ? 'none' : '1.5px solid #e4ded2', background: bg, color: textColor, cursor: day ? 'pointer' : 'default',
+        height: 42, borderRadius: 10, fontSize: 13, fontWeight: 600, fontFamily: "'Space Grotesk', sans-serif"
+      }
+    }, day || '');
+  }
+
+  phoneShell(inner, tint) {
+    return React.createElement('div', { style: { width: '100%', height: '100%', display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif' } }, inner);
+  }
+
+  renderVals() {
+    const cells = this.buildGrid();
+    const weekLabels = ['S','M','T','W','T','F','S'];
+
+    const tabBar = (accent, mono) => React.createElement('div', {
+      style: { display: 'flex', borderTop: '1px solid #e9e4d8', padding: '12px 0 20px', background: '#fff' }
+    }, ['Calendar','Friends','Polls'].map((label, i) => React.createElement('div', {
+      key: label, style: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }
+    },
+      React.createElement('div', { style: {
+        width: 8, height: 8, borderRadius: i === 0 ? '50%' : 2,
+        background: i === 0 ? accent : '#c9c2b3'
+      } }),
+      React.createElement('span', { style: {
+        fontSize: 10.5, fontFamily: mono ? "'IBM Plex Mono', monospace" : 'Inter, sans-serif',
+        color: i === 0 ? '#2a2622' : '#a39d90', fontWeight: i === 0 ? 600 : 400
+      } }, label)
+    )));
+
+    // ---- Phone A: Ledger ----
+    const phoneA = this.phoneShell(React.createElement(React.Fragment, null,
+      React.createElement('div', { style: { padding: '22px 22px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+        React.createElement('span', { style: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#a39d90' } }, '09:41'),
+        React.createElement('span', { style: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#a39d90' } }, 'LOOSE DAYS')
+      ),
+      React.createElement('div', { style: { padding: '4px 22px 18px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' } },
+        React.createElement('h1', { style: { margin: 0, fontFamily: "'IBM Plex Mono', monospace", fontSize: 22, fontWeight: 500, color: '#1a1a1a' } }, 'JULY 2026'),
+        React.createElement('div', { style: { display: 'flex', gap: 14, fontFamily: "'IBM Plex Mono', monospace", fontSize: 14, color: '#7a7364' } },
+          React.createElement('span', null, '<'), React.createElement('span', null, '>'))
+      ),
+      React.createElement('div', { style: { padding: '0 16px', display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center' } },
+        weekLabels.map((w, i) => React.createElement('div', { key: 'wl'+i, style: { fontSize: 9.5, fontFamily: "'IBM Plex Mono', monospace", color: '#c2bcae', padding: '4px 0' } }, w))
+      ),
+      React.createElement('div', { style: { padding: '0 16px', display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', borderTop: '1px solid #efeae0' } },
+        cells.map((day, i) => this.renderDayA(day, this.state.a[day]))
+      ),
+      React.createElement('div', { style: { margin: '16px 22px', padding: '12px 14px', border: '1px solid #efeae0', borderRadius: 10, display: 'flex', gap: 16, fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: '#6b6558' } },
+        ['F free','B busy','M maybe'].map(t => React.createElement('span', { key: t }, t))
+      ),
+      React.createElement('div', { style: { flex: 1 } }),
+      tabBar('#2a5fb0', true)
+    ));
+
+    // ---- Phone B: Soft Structured ----
+    const phoneB = this.phoneShell(React.createElement(React.Fragment, null,
+      React.createElement('div', { style: { padding: '26px 24px 4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+        React.createElement('span', { style: { width: 30, height: 30, borderRadius: '50%', background: '#e7e1d3', display: 'inline-block' } }),
+        React.createElement('span', { style: { fontSize: 12, color: '#a39d90' } }, '09:41')
+      ),
+      React.createElement('div', { style: { padding: '10px 24px 16px' } },
+        React.createElement('h1', { style: { margin: 0, fontFamily: "'Space Grotesk', sans-serif", fontSize: 24, fontWeight: 600, color: '#1a1a1a' } }, 'July 2026'),
+        React.createElement('p', { style: { margin: '4px 0 0', fontSize: 12.5, color: '#9a9384' } }, 'Tap a day to set your status')
+      ),
+      React.createElement('div', { style: { padding: '0 18px', display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center' } },
+        weekLabels.map((w, i) => React.createElement('div', { key: 'wl'+i, style: { fontSize: 11, color: '#b7b0a1', padding: '2px 0 10px', fontWeight: 500 } }, w))
+      ),
+      React.createElement('div', { style: { padding: '0 18px', display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', rowGap: 6 } },
+        cells.map((day, i) => this.renderDayB(day, this.state.b[day]))
+      ),
+      React.createElement('div', { style: { margin: '18px 24px', display: 'flex', gap: 14, fontSize: 11, color: '#8a8374' } },
+        [['free','#7a9b7e','ring'], ['maybe','#c48a2e','half'], ['busy','#b0483f','fill']].map(([label, color, kind]) => React.createElement('div', { key: label, style: { display: 'flex', alignItems: 'center', gap: 5 } },
+          React.createElement('span', { style: { width: 12, height: 12, borderRadius: '50%', boxSizing: 'border-box', border: `2px solid ${color}`, background: kind === 'fill' ? color : kind === 'half' ? `linear-gradient(90deg, ${color} 50%, transparent 50%)` : 'transparent' } }),
+          React.createElement('span', null, label)
+        ))
+      ),
+      React.createElement('div', { style: { flex: 1 } }),
+      tabBar('#2a5fb0', false)
+    ));
+
+    // ---- Phone C: Bold Editorial ----
+    const phoneC = this.phoneShell(React.createElement(React.Fragment, null,
+      React.createElement('div', { style: { background: '#1a1a1a', padding: '26px 24px 22px', borderRadius: '0 0 28px 28px' } },
+        React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9a9384', marginBottom: 16 } },
+          React.createElement('span', null, '09:41'), React.createElement('span', null, 'JUL 14')
+        ),
+        React.createElement('h1', { style: { margin: 0, fontFamily: "'Space Grotesk', sans-serif", fontSize: 34, fontWeight: 700, color: '#fdfcfa', lineHeight: 1 } }, 'July'),
+        React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 2 } },
+          React.createElement('span', { style: { fontFamily: "'Space Grotesk', sans-serif", fontSize: 15, color: '#7d8a9c' } }, '2026'),
+          React.createElement('div', { style: { display: 'flex', gap: 16, fontSize: 15, color: '#c9c2b3' } }, React.createElement('span', null, '‹'), React.createElement('span', null, '›'))
+        )
+      ),
+      React.createElement('div', { style: { padding: '18px 18px 0', display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center' } },
+        weekLabels.map((w, i) => React.createElement('div', { key: 'wl'+i, style: { fontSize: 10.5, fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, color: '#c2bcae', padding: '2px 0 8px' } }, w))
+      ),
+      React.createElement('div', { style: { padding: '0 18px', display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 5 } },
+        cells.map((day, i) => this.renderDayC(day, this.state.c[day]))
+      ),
+      React.createElement('div', { style: { margin: '18px 24px', display: 'flex', gap: 14, fontSize: 11, fontWeight: 600, color: '#5a544a', fontFamily: "'Space Grotesk', sans-serif" } },
+        [['free','#7a9b7e'], ['maybe','#c48a2e'], ['busy','#b0483f']].map(([label, color]) => React.createElement('div', { key: label, style: { display: 'flex', alignItems: 'center', gap: 5 } },
+          React.createElement('span', { style: { width: 10, height: 10, borderRadius: 3, background: color } }),
+          React.createElement('span', null, label)
+        ))
+      ),
+      React.createElement('div', { style: { flex: 1 } }),
+      tabBar('#2a5fb0', false)
+    ));
+
+    return { phoneA, phoneB, phoneC };
+  }
+}
+
+</script>
+</body>
+</html>
