@@ -8,13 +8,14 @@ export interface User {
 	id: string;
 	displayName: string;
 	email?: string;
-	phone?: string | null;
+	/** The server only ever stores a hash of the phone number, so this is a
+	 * presence signal ("have I set one?"), never the number itself. */
+	phoneSet?: boolean;
 }
 
 export interface Friend {
 	id: string;
 	displayName: string;
-	phone: string;
 }
 
 export interface Contact {

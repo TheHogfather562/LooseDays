@@ -7,8 +7,10 @@
 	import type { Contact } from '$lib/types';
 	import { smsLink, whatsappLink } from '$lib/links';
 
-	let phone = $state(db.currentUser?.phone ?? '');
-	let phoneSaved = $state(!!db.currentUser?.phone);
+	// The server only ever stores a hash of the phone number, so it can't be
+	// pre-filled for editing — only whether one was already set.
+	let phone = $state('');
+	let phoneSaved = $state(!!db.currentUser?.phoneSet);
 
 	let pasteInput = $state('');
 	let contacts = $state<Contact[]>([]);
