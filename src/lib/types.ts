@@ -7,6 +7,8 @@ export type Availability = 'free' | 'busy' | 'maybe';
 export interface User {
 	id: string;
 	displayName: string;
+	email?: string;
+	phone?: string | null;
 }
 
 export interface Friend {
@@ -21,6 +23,7 @@ export interface Contact {
 	phone: string;
 	matched: boolean;
 	userId: string | null;
+	alreadyFriend?: boolean;
 }
 
 export type AccessScope = 'range' | 'standing';
@@ -65,6 +68,8 @@ export interface PollInvitee {
 	phone?: string;
 	name: string;
 	status: InviteeStatus;
+	accessToken?: string;
+	isMe?: boolean;
 }
 
 export type PollResponses = Record<string, Record<string, Availability>>;

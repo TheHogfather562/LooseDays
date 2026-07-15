@@ -37,5 +37,5 @@ export function computeBest(
 }
 
 export function myInvitee(poll: Poll): PollInvitee | undefined {
-	return poll.invitees.find((i) => i.userId === 'u0');
+	return poll.invitees.find((i) => i.isMe);
 }

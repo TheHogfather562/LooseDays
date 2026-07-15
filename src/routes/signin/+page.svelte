@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import AppShell from '$lib/components/AppShell.svelte';
 	import { api } from '$lib/api';
 
@@ -15,13 +13,8 @@
 		sent = true;
 	}
 
-	function resend() {
-		// no-op in the mock — a real send would re-trigger the email API call
-	}
-
-	async function continueDemo() {
-		await api.completeSignIn();
-		await goto(resolve('/onboarding'));
+	async function resend() {
+		await api.sendMagicLink(email);
 	}
 </script>
 
@@ -50,15 +43,9 @@
 			</p>
 			<button
 				onclick={resend}
-				class="mb-7 cursor-pointer self-start border-none bg-transparent p-0 text-[13px] font-semibold text-accent"
+				class="cursor-pointer self-start border-none bg-transparent p-0 text-[13px] font-semibold text-accent"
 			>
 				Resend link
-			</button>
-			<button
-				onclick={continueDemo}
-				class="cursor-pointer self-start border-none bg-transparent p-0 text-[12px] text-muted"
-			>
-				Continue (demo) →
 			</button>
 		{:else}
 			<h1 class="m-0 mb-2 font-display text-[21px] font-semibold text-ink">Sign in</h1>

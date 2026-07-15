@@ -24,12 +24,21 @@
 	const friend = $derived(friends.find((f) => f.id === friendId));
 	const access = $derived(db.friendAccess[friendId]);
 
+	let monthOffset = $state(0);
+
 	type CellStatus = 'free' | 'busy' | 'maybe' | 'mutual' | null;
 
+	const monthLabel = $derived.by(() => {
+		const now = new Date();
+		const base = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+		return base.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+	});
+
 	const grid = $derived.by(() => {
-		// The mock friend calendars only cover July 2026 — show that month.
-		const year = 2026;
-		const month = 6;
+		const now = new Date();
+		const base = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+		const year = base.getFullYear();
+		const month = base.getMonth();
 		const daysInMonth = new Date(year, month + 1, 0).getDate();
 		const startWeekday = new Date(year, month, 1).getDay();
 		const cells: { date: string | null; day: string; status: CellStatus }[] = [];
@@ -75,6 +84,24 @@
 		? 'You can see their full status and notes.'
 		: "Only days you're both free are highlighted — their busy or maybe days stay private."}
 </p>
+
+<div class="mx-[22px] mb-2 flex items-center justify-between">
+	<span class="text-[13px] font-semibold text-ink">{monthLabel}</span>
+	<div class="flex gap-[18px]">
+		<button
+			onclick={() => (monthOffset -= 1)}
+			class="cursor-pointer border-none bg-transparent p-1 text-base text-subtext"
+		>
+			‹
+		</button>
+		<button
+			onclick={() => (monthOffset += 1)}
+			class="cursor-pointer border-none bg-transparent p-1 text-base text-subtext"
+		>
+			›
+		</button>
+	</div>
+</div>
 
 <CalendarMonthGrid cells={grid} cellSize={44} />
 
