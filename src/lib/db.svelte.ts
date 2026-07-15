@@ -1,70 +1,43 @@
-// Local reactive "database" — the client-side cache that a real API layer
-// would populate. Everything mutable in the app lives here and is persisted
-// to localStorage so state survives a reload. `api.ts` is the only thing that
-// reads/writes this module; components go through `api.ts`.
+// Reactive client-side cache of server state. `api.ts` is the only thing that
+// writes into this — components read from `db` and call `api.*` to mutate.
+// There's no local persistence anymore: the SQLite backend is the source of
+// truth, and this cache is (re)populated by `bootstrap()`/`api` calls.
 
-import { browser } from '$app/environment';
-import {
-	friendAccessOverrides,
-	initialCalStatuses,
-	initialIncomingRequests,
-	initialPolls,
-	initialStandingAccess
-} from './mock-data';
 import type {
 	CalendarDays,
 	FriendAccessGrant,
 	IncomingRequest,
 	Poll,
-	StandingAccessGrant
+	StandingAccessGrant,
+	User
 } from './types';
 
-const STORAGE_KEY = 'loosedays.db.v1';
-
-interface PersistedState {
-	session: { signedIn: boolean; onboarded: boolean };
+interface AppState {
+	session: { checked: boolean; signedIn: boolean; onboarded: boolean };
+	currentUser: User | null;
 	calStatuses: CalendarDays;
 	friendAccess: Record<string, FriendAccessGrant>;
 	outgoingPending: Record<string, boolean>;
-	onboardingAdded: Record<string, boolean>;
 	incomingRequests: IncomingRequest[];
 	standingAccess: StandingAccessGrant[];
 	polls: Poll[];
 }
 
-function seed(): PersistedState {
+function empty(): AppState {
 	return {
-		session: { signedIn: false, onboarded: false },
-		calStatuses: structuredClone(initialCalStatuses),
-		friendAccess: structuredClone(friendAccessOverrides),
+		session: { checked: false, signedIn: false, onboarded: false },
+		currentUser: null,
+		calStatuses: {},
+		friendAccess: {},
 		outgoingPending: {},
-		onboardingAdded: {},
-		incomingRequests: structuredClone(initialIncomingRequests),
-		standingAccess: structuredClone(initialStandingAccess),
-		polls: structuredClone(initialPolls)
+		incomingRequests: [],
+		standingAccess: [],
+		polls: []
 	};
 }
 
-function loadPersisted(): PersistedState {
-	if (browser) {
-		try {
-			const raw = localStorage.getItem(STORAGE_KEY);
-			if (raw) return { ...seed(), ...JSON.parse(raw) };
-		} catch {
-			// fall through to fresh seed
-		}
-	}
-	return seed();
-}
-
-export const db = $state(loadPersisted());
-
-export function persist() {
-	if (!browser) return;
-	localStorage.setItem(STORAGE_KEY, JSON.stringify($state.snapshot(db)));
-}
+export const db = $state(empty());
 
 export function resetDb() {
-	Object.assign(db, seed());
-	persist();
+	Object.assign(db, empty());
 }

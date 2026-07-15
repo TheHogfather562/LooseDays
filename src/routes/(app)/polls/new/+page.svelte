@@ -5,7 +5,7 @@
 	import { api } from '$lib/api';
 	import { fmtRangeLabel } from '$lib/format';
 	import { smsLink, whatsappLink } from '$lib/links';
-	import type { Friend } from '$lib/types';
+	import type { Friend, Poll } from '$lib/types';
 
 	let friends = $state<Friend[]>([]);
 	$effect(() => {
@@ -20,6 +20,7 @@
 	let phoneChips = $state<string[]>([]);
 	let phoneInput = $state('');
 	let step = $state<'form' | 'sent'>('form');
+	let createdPoll = $state<Poll | null>(null);
 
 	function toggleFriend(id: string) {
 		friendSel = { ...friendSel, [id]: !friendSel[id] };
@@ -38,25 +39,9 @@
 		!(title && start && end && (friends.some((f) => friendSel[f.id]) || phoneChips.length))
 	);
 
-	function goToSend() {
+	async function goToSend() {
 		if (sendDisabled) return;
-		step = 'sent';
-	}
-	function backToForm() {
-		step = 'form';
-	}
-
-	const rangeLabel = $derived(start && end ? fmtRangeLabel(start, end) : '');
-	const sendTargets = $derived([
-		...friends.filter((f) => friendSel[f.id]).map((f) => ({ name: f.displayName, phone: f.phone })),
-		...phoneChips.map((ph) => ({ name: ph, phone: ph }))
-	]);
-	const inviteMsg = $derived(
-		`You're invited to "${title}" (${rangeLabel}) on Loose Days — mark your availability: https://loosedays.app/p/abc123`
-	);
-
-	async function finish() {
-		await api.createPoll({
+		createdPoll = await api.createPoll({
 			title,
 			note,
 			start,
@@ -64,6 +49,32 @@
 			friendIds: Object.keys(friendSel).filter((id) => friendSel[id]),
 			phoneChips
 		});
+		step = 'sent';
+	}
+	function backToForm() {
+		step = 'form';
+		createdPoll = null;
+	}
+
+	const rangeLabel = $derived(start && end ? fmtRangeLabel(start, end) : '');
+	const sendTargets = $derived(
+		createdPoll
+			? createdPoll.invitees
+					.filter((inv) => !inv.isMe)
+					.map((inv) => ({
+						name: inv.name,
+						phone: inv.phone ?? friends.find((f) => f.id === inv.userId)?.phone ?? '',
+						token: inv.accessToken!
+					}))
+			: []
+	);
+
+	function inviteMsgFor(target: { token: string }) {
+		const origin = typeof window !== 'undefined' ? window.location.origin : '';
+		return `You're invited to "${title}" (${rangeLabel}) on Loose Days — mark your availability: ${origin}/p/${target.token}`;
+	}
+
+	async function finish() {
 		await goto(resolve('/polls'));
 	}
 </script>
@@ -195,7 +206,7 @@
 		Loose Days doesn't message anyone directly — send each person a link over SMS or WhatsApp.
 	</p>
 	<div class="flex flex-col gap-2.5 px-[18px]">
-		{#each sendTargets as t (t.phone)}
+		{#each sendTargets as t (t.token)}
 			<div
 				class="flex items-center justify-between rounded-[14px] border px-3.5 py-3"
 				style="border-color:var(--color-line)"
@@ -206,7 +217,7 @@
 				</div>
 				<div class="flex gap-2">
 					<a
-						href={smsLink(t.phone, inviteMsg)}
+						href={smsLink(t.phone, inviteMsgFor(t))}
 						rel="external"
 						class="rounded-lg border px-2.5 py-[7px] text-xs font-semibold text-ink no-underline"
 						style="border-color:var(--color-line)"
@@ -214,7 +225,7 @@
 						SMS
 					</a>
 					<a
-						href={whatsappLink(t.phone, inviteMsg)}
+						href={whatsappLink(t.phone, inviteMsgFor(t))}
 						rel="external"
 						class="rounded-lg border px-2.5 py-[7px] text-xs font-semibold text-ink no-underline"
 						style="border-color:var(--color-line)"

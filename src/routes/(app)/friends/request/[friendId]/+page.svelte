@@ -27,7 +27,9 @@
 		sent = true;
 	}
 
-	const reqMsg = `Can you approve my request to see your Loose Days calendar? https://loosedays.app/access/req1`;
+	const reqMsg = `Can you approve my request to see your Loose Days calendar? ${
+		typeof window !== 'undefined' ? window.location.origin : ''
+	}/friends/incoming`;
 </script>
 
 <BackHeader title="Request access" href={resolve('/friends')} />
