@@ -3,6 +3,7 @@
 // — it's also the only thing that writes into the `db` client-side cache.
 
 import { db } from './db.svelte';
+import { rememberPhone } from './phonebook';
 import type { AccessScope, Availability, Contact, DetailLevel, Friend, Poll } from './types';
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -36,7 +37,7 @@ export const api = {
 		const s = await req<{
 			signedIn: boolean;
 			onboarded: boolean;
-			user: { id: string; displayName: string; email: string; phone: string | null } | null;
+			user: { id: string; displayName: string; email: string; phoneSet: boolean } | null;
 		}>('/api/session');
 		db.session = { checked: true, signedIn: s.signedIn, onboarded: s.onboarded };
 		db.currentUser = s.user;
@@ -48,7 +49,7 @@ export const api = {
 	},
 	async setMyPhone(phone: string) {
 		await post('/api/me/phone', { phone });
-		if (db.currentUser) db.currentUser.phone = phone;
+		if (db.currentUser) db.currentUser.phoneSet = true;
 	},
 	async inviteEmail(email: string) {
 		await post('/api/invites', { email });
@@ -79,10 +80,18 @@ export const api = {
 		return req<Friend[]>('/api/friends');
 	},
 	async matchContacts(entries: { name: string; phone: string }[]) {
-		return req<Contact[]>('/api/contacts/match', {
+		const contacts = await req<Contact[]>('/api/contacts/match', {
 			method: 'POST',
 			body: JSON.stringify({ entries })
 		});
+		// The server never stores raw phone numbers, so if we ever need this
+		// friend's number again (e.g. to notify them about an access
+		// request), it has to come from here — cache it on this device now,
+		// while we still have it.
+		for (const c of contacts) {
+			if (c.matched && c.userId) rememberPhone(c.userId, c.phone);
+		}
+		return contacts;
 	},
 	async addFriend(userId: string) {
 		await post('/api/friends', { userId });
@@ -168,7 +177,7 @@ export const api = {
 		start: string;
 		end: string;
 		friendIds: string[];
-		phoneChips: string[];
+		phoneInvitees: { phone: string; name: string }[];
 	}) {
 		const poll = await req<Poll>('/api/polls', { method: 'POST', body: JSON.stringify(input) });
 		db.polls = [poll, ...db.polls];

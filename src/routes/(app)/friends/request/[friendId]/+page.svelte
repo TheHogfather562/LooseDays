@@ -4,6 +4,7 @@
 	import BackHeader from '$lib/components/BackHeader.svelte';
 	import { api } from '$lib/api';
 	import { smsLink, whatsappLink } from '$lib/links';
+	import { getRememberedPhone } from '$lib/phonebook';
 	import type { AccessScope, Friend } from '$lib/types';
 
 	let friends = $state<Friend[]>([]);
@@ -13,6 +14,10 @@
 
 	const friendId = $derived(page.params.friendId);
 	const friend = $derived(friends.find((f) => f.id === friendId));
+	// The server never stores a friend's raw phone number — this only works
+	// if this device matched their contact locally at some point (onboarding
+	// or the friends contact-match flow), which caches it here.
+	const friendPhone = $derived(friendId ? getRememberedPhone(friendId) : undefined);
 
 	let scope = $state<AccessScope>('range');
 	let start = $state('');
@@ -44,10 +49,10 @@
 				<div class="text-[13.5px] font-semibold text-ink">{friend?.displayName ?? ''}</div>
 				<div class="text-[11.5px] text-muted">Notify them to approve</div>
 			</div>
-			{#if friend}
+			{#if friendPhone}
 				<div class="flex gap-2">
 					<a
-						href={smsLink(friend.phone, reqMsg)}
+						href={smsLink(friendPhone, reqMsg)}
 						rel="external"
 						class="rounded-lg border px-2.5 py-[7px] text-xs font-semibold text-ink no-underline"
 						style="border-color:var(--color-line)"
@@ -55,13 +60,17 @@
 						SMS
 					</a>
 					<a
-						href={whatsappLink(friend.phone, reqMsg)}
+						href={whatsappLink(friendPhone, reqMsg)}
 						rel="external"
 						class="rounded-lg border px-2.5 py-[7px] text-xs font-semibold text-ink no-underline"
 						style="border-color:var(--color-line)"
 					>
 						WhatsApp
 					</a>
+				</div>
+			{:else}
+				<div class="text-[11.5px] text-muted">
+					No cached number for them on this device — ask them to check the app directly.
 				</div>
 			{/if}
 		</div>

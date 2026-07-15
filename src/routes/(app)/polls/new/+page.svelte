@@ -5,6 +5,7 @@
 	import { api } from '$lib/api';
 	import { fmtRangeLabel } from '$lib/format';
 	import { smsLink, whatsappLink } from '$lib/links';
+	import { getRememberedPhone } from '$lib/phonebook';
 	import type { Friend, Poll } from '$lib/types';
 
 	let friends = $state<Friend[]>([]);
@@ -17,7 +18,11 @@
 	let start = $state('');
 	let end = $state('');
 	let friendSel = $state<Record<string, boolean>>({});
-	let phoneChips = $state<string[]>([]);
+	// The server never stores raw phone numbers, so — unlike before — a
+	// name is required per phone invitee: it can't fall back to displaying
+	// the phone digits as the name on later views of this poll.
+	let phoneChips = $state<{ name: string; phone: string }[]>([]);
+	let phoneNameInput = $state('');
 	let phoneInput = $state('');
 	let step = $state<'form' | 'sent'>('form');
 	let createdPoll = $state<Poll | null>(null);
@@ -26,9 +31,11 @@
 		friendSel = { ...friendSel, [id]: !friendSel[id] };
 	}
 	function addPhoneChip() {
-		const v = phoneInput.trim();
-		if (!v) return;
-		phoneChips = [...phoneChips, v];
+		const phone = phoneInput.trim();
+		const name = phoneNameInput.trim();
+		if (!phone || !name) return;
+		phoneChips = [...phoneChips, { name, phone }];
+		phoneNameInput = '';
 		phoneInput = '';
 	}
 	function removePhoneChip(idx: number) {
@@ -47,7 +54,7 @@
 			start,
 			end,
 			friendIds: Object.keys(friendSel).filter((id) => friendSel[id]),
-			phoneChips
+			phoneInvitees: phoneChips
 		});
 		step = 'sent';
 	}
@@ -63,7 +70,11 @@
 					.filter((inv) => !inv.isMe)
 					.map((inv) => ({
 						name: inv.name,
-						phone: inv.phone ?? friends.find((f) => f.id === inv.userId)?.phone ?? '',
+						// `inv.phone` is only present in the response right after
+						// creation (the server echoes back what was just
+						// submitted without persisting it); for friend invitees,
+						// fall back to whatever this device has cached locally.
+						phone: inv.phone ?? (inv.userId ? getRememberedPhone(inv.userId) : undefined) ?? '',
 						token: inv.accessToken!
 					}))
 			: []
@@ -148,8 +159,15 @@
 		</div>
 
 		<div class="flex flex-col gap-2">
-			<span class="text-xs font-semibold text-subtext">Or add a phone number</span>
+			<span class="text-xs font-semibold text-subtext">Or add by name + phone number</span>
 			<div class="flex gap-2">
+				<input
+					type="text"
+					placeholder="Name"
+					bind:value={phoneNameInput}
+					class="w-24 rounded-[10px] border px-3 py-2.5 text-[13px] text-ink"
+					style="border-color:var(--color-line)"
+				/>
 				<input
 					type="tel"
 					placeholder="+1 555-0100"
@@ -165,11 +183,11 @@
 				</button>
 			</div>
 			<div class="flex flex-wrap gap-2">
-				{#each phoneChips as chip, i (chip + i)}
+				{#each phoneChips as chip, i (chip.phone + i)}
 					<span
 						class="flex items-center gap-1.5 rounded-full bg-page px-2.5 py-1.5 text-[12.5px] text-ink-soft"
 					>
-						{chip}
+						{chip.name} · {chip.phone}
 						<button
 							onclick={() => removePhoneChip(i)}
 							class="cursor-pointer border-none bg-transparent p-0 text-[13px] text-muted"

@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: loosedays
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/loosedays
+      SERVER_PEPPER: ${SERVER_PEPPER:?set SERVER_PEPPER in .env}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?set ADMIN_EMAIL in .env}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-Loose Days <onboarding@resend.dev>}
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:8787}
+      DEFAULT_PHONE_REGION: ${DEFAULT_PHONE_REGION:-US}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      PORT: 8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - '8787:80'
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
