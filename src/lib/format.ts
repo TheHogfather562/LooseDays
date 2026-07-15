@@ -44,4 +44,10 @@ export function todayStr(): string {
 	return dateStr(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
-export const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+export const WEEKDAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+/** Day-of-month grids run Monday-to-Sunday, so a month's leading blank cells
+ * need `Date.getDay()` (0 = Sunday) rotated to 0 = Monday. */
+export function mondayFirstWeekday(date: Date): number {
+	return (date.getDay() + 6) % 7;
+}
