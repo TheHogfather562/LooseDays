@@ -4,6 +4,15 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+	server: {
+		// Lets `npm run dev` talk to a backend started separately (e.g. `cargo
+		// run` in backend/, or `docker compose up postgres backend`) without
+		// needing the full docker-compose proxy stack running.
+		proxy: {
+			'/api': 'http://localhost:8080',
+			'/auth': 'http://localhost:8080'
+		}
+	},
 	plugins: [
 		tailwindcss(),
 		sveltekit({
