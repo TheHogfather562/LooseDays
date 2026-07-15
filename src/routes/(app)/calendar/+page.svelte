@@ -4,7 +4,7 @@
 	import CalendarMonthGrid from '$lib/components/CalendarMonthGrid.svelte';
 	import StatusPillGroup from '$lib/components/StatusPillGroup.svelte';
 	import StatusDot from '$lib/components/StatusDot.svelte';
-	import { dateStr, fmtWeekdayShort, todayStr } from '$lib/format';
+	import { dateStr, fmtWeekdayShort, mondayFirstWeekday, todayStr } from '$lib/format';
 	import type { Availability } from '$lib/types';
 
 	let monthOffset = $state(0);
@@ -19,7 +19,7 @@
 		const y = base.getFullYear();
 		const m = base.getMonth();
 		const daysInMonth = new Date(y, m + 1, 0).getDate();
-		const startWeekday = new Date(y, m, 1).getDay();
+		const startWeekday = mondayFirstWeekday(new Date(y, m, 1));
 		const today = todayStr();
 		const cells: {
 			date: string | null;

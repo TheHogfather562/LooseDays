@@ -6,7 +6,7 @@
 	import StatusDot from '$lib/components/StatusDot.svelte';
 	import { api } from '$lib/api';
 	import { db } from '$lib/db.svelte';
-	import { dateStr } from '$lib/format';
+	import { dateStr, mondayFirstWeekday } from '$lib/format';
 	import type { Friend } from '$lib/types';
 
 	let friends = $state<Friend[]>([]);
@@ -40,7 +40,7 @@
 		const year = base.getFullYear();
 		const month = base.getMonth();
 		const daysInMonth = new Date(year, month + 1, 0).getDate();
-		const startWeekday = new Date(year, month, 1).getDay();
+		const startWeekday = mondayFirstWeekday(new Date(year, month, 1));
 		const cells: { date: string | null; day: string; status: CellStatus }[] = [];
 		for (let i = 0; i < startWeekday; i++) cells.push({ date: null, day: '', status: null });
 		for (let day = 1; day <= daysInMonth; day++) {
