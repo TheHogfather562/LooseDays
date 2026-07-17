@@ -1,0 +1,11 @@
+# Overlay for local development when the frontend runs outside Docker via
+# `npm run dev` (Vite proxies /api and /auth to localhost:8080, so the
+# backend needs a host-published port for that case only — the full-stack
+# `docker compose up` flow doesn't need it, since Caddy reaches the backend
+# over the compose network at backend:8080).
+#
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up postgres backend
+services:
+  backend:
+    ports:
+      - '8080:8080'
