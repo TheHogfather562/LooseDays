@@ -68,12 +68,15 @@ Edit `.env`:
 ### Run the backend + Postgres
 
 ```sh
-docker compose up postgres backend
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up postgres backend
 ```
 
 This builds the Rust backend, runs the Postgres migrations automatically on
-startup, and publishes `:8080` to the host so the frontend dev server can
-reach it directly.
+startup, and (via the dev overlay) publishes `:8080` to the host so the
+frontend dev server can reach it directly. The base `docker-compose.yml`
+doesn't publish that port on its own — Caddy reaches the backend over the
+compose network in the full-stack flow below, so it's only needed for this
+split dev setup.
 
 Set `PUBLIC_ORIGIN=http://localhost:5173` in `.env` for this flow (matching
 Vite's default dev port) — the backend uses it to build the magic-link URL
@@ -138,6 +141,21 @@ host. `static/_redirects` is already set up for SPA-style fallback routing.
 Whatever serves the frontend needs to route `/api/**` and `/auth/**` to the
 backend's public hostname (same-origin proxying is recommended so session
 cookies stay simple — see `Caddyfile` for the pattern used in local dev).
+
+**Or: the whole stack on one box (e.g. a NAS)** — `docker-compose.prod.yml`
+runs Postgres, the backend, and the Caddy-served frontend together, with a
+`cloudflared` container that tunnels a public hostname to `proxy:80` so
+nothing needs a port forwarded on your router:
+
+```sh
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
+
+Requires `CLOUDFLARE_TUNNEL_TOKEN` in `.env` — create a tunnel with the
+Docker connector in the Cloudflare Zero Trust dashboard (Networks ->
+Tunnels), point its public hostname route at `http://proxy:80`, and paste
+the token in. Set `PUBLIC_ORIGIN`/`COOKIE_SECURE` in `.env` to match that
+public hostname (`https://...`, `COOKIE_SECURE=true`) before starting.
 
 ## Development
 

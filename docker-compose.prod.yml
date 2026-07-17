@@ -1,0 +1,28 @@
+# Overlay for self-hosting (e.g. a NAS) behind a Cloudflare Tunnel. Adds
+# cloudflared, which reaches the proxy over the compose network at
+# proxy:80 — no inbound ports need to be opened on the host or router — and
+# restarts everything automatically after a reboot or crash.
+#
+# Requires CLOUDFLARE_TUNNEL_TOKEN in .env (Cloudflare Zero Trust dashboard
+# -> Networks -> Tunnels -> create a tunnel with the Docker connector, copy
+# its token, and set the tunnel's public hostname route to http://proxy:80).
+#
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+services:
+  postgres:
+    restart: unless-stopped
+
+  backend:
+    restart: unless-stopped
+
+  proxy:
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?set CLOUDFLARE_TUNNEL_TOKEN in .env}
+    depends_on:
+      - proxy
