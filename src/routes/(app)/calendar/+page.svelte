@@ -11,8 +11,6 @@
 	let selectedDate = $state<string | null>(null);
 	let noteDraft = $state('');
 
-	const CYCLE: (Availability | null)[] = [null, 'free', 'busy', 'maybe'];
-
 	const grid = $derived.by(() => {
 		const now = new Date();
 		const base = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
@@ -54,13 +52,6 @@
 	function selectDay(ds: string) {
 		selectedDate = ds;
 		noteDraft = db.calStatuses[ds]?.note ?? '';
-	}
-
-	async function cycleDay(ds: string) {
-		const cur = db.calStatuses[ds]?.status ?? null;
-		const next = CYCLE[(CYCLE.indexOf(cur) + 1) % CYCLE.length];
-		await api.setCalendarDayStatus(ds, next);
-		selectDay(ds);
 	}
 
 	async function setStatus(status: Availability) {
@@ -120,7 +111,7 @@
 <CalendarMonthGrid
 	cells={grid.cells}
 	cellSize={50}
-	onDayClick={cycleDay}
+	onDayClick={selectDay}
 	onSwipe={(dir) => (dir === 'left' ? nextMonth() : prevMonth())}
 />
 
