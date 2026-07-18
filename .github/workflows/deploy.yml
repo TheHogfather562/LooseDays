@@ -1,0 +1,42 @@
+name: Deploy
+
+# Whole stack (Postgres, backend, frontend-via-Caddy, cloudflared) lives on
+# one box, run via docker-compose.prod.yml. This redeploys it on every push
+# to main by driving a persistent checkout on that same box.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "README.md"
+      - "LICENSE"
+      - "chats/**"
+      - "project/**"
+      - ".vscode/**"
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Runner installed on the box itself (see README's "Continuous
+    # deployment" section) — never runs on GitHub-hosted infrastructure, so
+    # nothing needs to accept inbound connections; the runner polls GitHub
+    # outbound, same as the cloudflared container does.
+    runs-on: [self-hosted, loosedays]
+    defaults:
+      run:
+        working-directory: /opt/loosedays
+    steps:
+      - name: Sync repo
+        run: |
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+
+      - name: Build and restart stack
+        run: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+
+      - name: Prune old images
+        run: docker image prune -f

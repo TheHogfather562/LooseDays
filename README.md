@@ -162,38 +162,57 @@ public hostname (`https://...`, `COOKIE_SECURE=true`) before starting.
 
 ### Continuous deployment
 
-Two independent GitHub Actions workflows deploy on every push to `main`
-(each only fires when files relevant to it change):
+`.github/workflows/deploy.yml` redeploys the whole stack — Postgres,
+backend, and the Caddy-served frontend — on every push to `main` (skipping
+docs-only changes). It runs `docker compose -f docker-compose.yml -f
+docker-compose.prod.yml up -d --build` against a **persistent checkout on
+the box itself**, via a **self-hosted GitHub Actions runner** installed on
+that same machine — so nothing needs to accept inbound connections from
+GitHub; the runner polls GitHub outbound, same as the `cloudflared`
+container does.
 
-- **`.github/workflows/deploy-frontend.yml`** — runs on GitHub-hosted
-  runners: typechecks, lints, builds the static bundle, and deploys it with
-  `wrangler`. Requires two repo secrets (Settings -> Secrets and variables
-  -> Actions):
-  - `CLOUDFLARE_API_TOKEN` — a token with Workers Scripts:Edit permission
-    for the account (Cloudflare dashboard -> My Profile -> API Tokens).
-  - `CLOUDFLARE_ACCOUNT_ID` — found on the Cloudflare dashboard's Workers &
-    Pages overview page.
+To set it up on the box (e.g. the Proxmox VM):
 
-- **`.github/workflows/deploy-backend.yml`** — runs `docker compose -f
-  docker-compose.yml -f docker-compose.prod.yml up -d --build` on a
-  **self-hosted runner installed on the box itself** (the NAS or wherever
-  `docker-compose.prod.yml` runs), so nothing needs to accept inbound
-  connections from GitHub — the runner polls GitHub outbound, same as
-  `cloudflared` does. To set it up:
+1. Clone the repo to a fixed path the workflow will reuse across runs, and
+   populate `.env` there by hand — it's gitignored, so nothing will create
+   it for you:
+   ```sh
+   git clone https://github.com/<you>/loosedays.git /opt/loosedays
+   cd /opt/loosedays && cp .env.example .env && nano .env
+   ```
+   Fill in `SERVER_PEPPER`, `ADMIN_EMAIL`, `PUBLIC_ORIGIN` (your real
+   `https://` domain), `COOKIE_SECURE=true`, and `CLOUDFLARE_TUNNEL_TOKEN`.
+   The workflow runs `git fetch` + `git reset --hard origin/main` in this
+   directory on every deploy, so treat it as deploy-only — don't make local
+   edits here.
+2. Create a dedicated, non-root user to run the runner, and add it to the
+   `docker` group so it can run `docker compose` without `sudo`:
+   ```sh
+   sudo useradd -m -s /bin/bash actions-runner
+   sudo usermod -aG docker actions-runner
+   sudo chown -R actions-runner:actions-runner /opt/loosedays
+   ```
+3. GitHub repo -> Settings -> Actions -> Runners -> New self-hosted runner,
+   and follow the generated download/config commands as the
+   `actions-runner` user. When prompted for labels, add `loosedays` (the
+   workflow targets `[self-hosted, loosedays]` specifically, so it won't
+   pick up jobs from any other self-hosted runner you might register
+   elsewhere).
+4. Install it as a service so it survives reboots:
+   ```sh
+   sudo ./svc.sh install actions-runner
+   sudo ./svc.sh start
+   ```
 
-  1. On the box: GitHub repo -> Settings -> Actions -> Runners -> New
-     self-hosted runner, and follow the generated `config.sh` command. When
-     prompted for labels, add `loosedays` (the workflow targets
-     `[self-hosted, loosedays]` specifically, so it won't pick up jobs from
-     any other self-hosted runner on the account).
-  2. Run the runner as a service (`./svc.sh install && ./svc.sh start`) so
-     it survives reboots.
-  3. Make sure `.env` (with `CLOUDFLARE_TUNNEL_TOKEN`, `SERVER_PEPPER`, etc.)
-     already exists in the runner's working copy of the repo — it's
-     gitignored, so checkout won't create it; drop it in once by hand.
+No GitHub repo secrets are needed for this workflow — everything it needs
+(`CLOUDFLARE_TUNNEL_TOKEN`, etc.) already lives in `/opt/loosedays/.env` on
+the box. It can also be triggered manually from the Actions tab
+(`workflow_dispatch`) if you need to redeploy without a new commit.
 
-  Both workflows can also be triggered manually from the Actions tab
-  (`workflow_dispatch`) if you need to redeploy without a new commit.
+Note: `wrangler.jsonc` is currently unused in this deployment mode (it's
+for the separate Cloudflare Workers static-hosting path described above) —
+harmless to leave in place, but safe to delete if you're committed to the
+whole-stack-on-one-box model.
 
 ## Development
 
