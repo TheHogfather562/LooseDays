@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import AppShell from '$lib/components/AppShell.svelte';
 	import ContactFinder from '$lib/components/ContactFinder.svelte';
+	import PhoneFinder from '$lib/components/PhoneFinder.svelte';
 	import EmailFinder from '$lib/components/EmailFinder.svelte';
 	import { api } from '$lib/api';
 	import { db } from '$lib/db.svelte';
@@ -52,6 +53,8 @@
 	</div>
 
 	<ContactFinder />
+
+	<PhoneFinder />
 
 	<EmailFinder />
 

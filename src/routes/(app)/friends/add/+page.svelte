@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import BackHeader from '$lib/components/BackHeader.svelte';
 	import ContactFinder from '$lib/components/ContactFinder.svelte';
+	import PhoneFinder from '$lib/components/PhoneFinder.svelte';
 	import EmailFinder from '$lib/components/EmailFinder.svelte';
 </script>
 
@@ -14,6 +15,8 @@
 </div>
 
 <ContactFinder />
+
+<PhoneFinder />
 
 <div class="pb-6">
 	<EmailFinder />
