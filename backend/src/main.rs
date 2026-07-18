@@ -68,6 +68,7 @@ async fn main() -> anyhow::Result<()> {
 			get(handlers::friends::list_friends).post(handlers::friends::add_friend),
 		)
 		.route("/api/contacts/match", post(handlers::friends::match_contacts))
+		.route("/api/friends/search-email", post(handlers::friends::search_email))
 		.route(
 			"/api/friends/:friend_id/access-request",
 			post(handlers::friends::request_access),

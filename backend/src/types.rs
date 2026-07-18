@@ -67,6 +67,15 @@ pub struct FriendDto {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct EmailSearchResultDto {
+	pub found: bool,
+	pub user_id: Option<Uuid>,
+	pub display_name: Option<String>,
+	pub already_friend: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ContactDto {
 	pub id: String,
 	pub name: String,

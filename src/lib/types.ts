@@ -27,6 +27,13 @@ export interface Contact {
 	alreadyFriend?: boolean;
 }
 
+export interface EmailSearchResult {
+	found: boolean;
+	userId: string | null;
+	displayName: string | null;
+	alreadyFriend: boolean;
+}
+
 export type AccessScope = 'range' | 'standing';
 export type DetailLevel = 'full' | 'overlap_only';
 

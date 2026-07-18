@@ -4,7 +4,7 @@
 	import { api } from '$lib/api';
 	import { smsLink, whatsappLink } from '$lib/links';
 	import { contactPickerSupported, pickContacts } from '$lib/contactPicker';
-	import type { Contact } from '$lib/types';
+	import type { Contact, EmailSearchResult } from '$lib/types';
 
 	let pasteInput = $state('');
 	let contacts = $state<Contact[]>([]);
@@ -31,6 +31,10 @@
 
 	let inviteEmail = $state('');
 	let inviteSent = $state(false);
+
+	let emailResult = $state<EmailSearchResult | null>(null);
+	let searchingEmail = $state(false);
+	let emailAdded = $state(false);
 
 	const inviteMsg = `Join me on Loose Days — a calendar for finding time with friends: ${
 		typeof window !== 'undefined' ? window.location.origin : ''
@@ -65,6 +69,31 @@
 		await api.inviteEmail(inviteEmail);
 		inviteSent = true;
 	}
+
+	async function searchEmail() {
+		if (!inviteEmail.includes('@')) return;
+		searchingEmail = true;
+		emailResult = null;
+		emailAdded = false;
+		inviteSent = false;
+		try {
+			emailResult = await api.searchEmail(inviteEmail);
+		} finally {
+			searchingEmail = false;
+		}
+	}
+
+	function resetEmailSearch() {
+		emailResult = null;
+		emailAdded = false;
+		inviteSent = false;
+	}
+
+	async function addFriendByEmail() {
+		if (!emailResult?.userId) return;
+		await api.addFriend(emailResult.userId);
+		emailAdded = true;
+	}
 </script>
 
 <BackHeader title="Add a friend" href={resolve('/friends')} />
@@ -90,18 +119,19 @@
 				{importError}
 			</p>
 		{/if}
-		<span class="text-xs font-semibold text-subtext">Or paste contacts (one per line: name, phone)</span
+		<span class="text-xs font-semibold text-subtext"
+			>Or paste contacts (one per line: name, phone)</span
 		>
 	{:else}
-		<span class="text-xs font-semibold text-subtext">Paste contacts (one per line: name, phone)</span
+		<span class="text-xs font-semibold text-subtext"
+			>Paste contacts (one per line: name, phone)</span
 		>
 	{/if}
 	<textarea
 		placeholder={'Priya Shah, +1 415-555-0101\nDana Ruiz, +1 415-555-0199'}
 		bind:value={pasteInput}
 		class="h-20 w-full resize-none rounded-[10px] border bg-white px-3 py-2.5 text-[13px] text-ink-soft"
-		style="border-color:var(--color-line)"
-	></textarea>
+		style="border-color:var(--color-line)"></textarea>
 	<button
 		onclick={checkContacts}
 		class="cursor-pointer self-start rounded-[10px] border-none bg-chip px-4 py-2 text-[12.5px] font-semibold text-ink"
@@ -167,23 +197,64 @@
 {/if}
 
 <div class="flex flex-col gap-2 px-[22px] pt-5 pb-6">
-	<span class="text-xs font-semibold text-subtext">Or invite someone by email</span>
+	<span class="text-xs font-semibold text-subtext">Or find someone by email</span>
 	<p class="m-0 text-[11px] leading-relaxed text-muted-2">
-		Sign-up is invite-only — this lets them request their own sign-in link.
+		Search for a friend already on Loose Days, or invite them if they're not here yet — sign-up is
+		invite-only.
 	</p>
 	<div class="flex gap-2">
 		<input
 			type="email"
 			placeholder="friend@example.com"
 			bind:value={inviteEmail}
+			oninput={resetEmailSearch}
 			class="flex-1 rounded-[10px] border px-3 py-2.5 text-[13px] text-ink"
 			style="border-color:var(--color-line)"
 		/>
 		<button
-			onclick={sendInvite}
+			onclick={searchEmail}
+			disabled={searchingEmail || !inviteEmail.includes('@')}
 			class="cursor-pointer rounded-[10px] border-none bg-chip px-4 text-[13px] font-semibold text-ink"
 		>
-			{inviteSent ? 'Invited ✓' : 'Invite'}
+			{searchingEmail ? 'Searching…' : 'Search'}
 		</button>
 	</div>
+
+	{#if emailResult}
+		{#if emailResult.found}
+			<div
+				class="flex items-center justify-between rounded-[14px] border bg-white px-3.5 py-3"
+				style="border-color:var(--color-line)"
+			>
+				<div>
+					<div class="text-[13.5px] font-semibold text-ink">{emailResult.displayName}</div>
+					<div class="text-[11.5px] text-muted">On Loose Days</div>
+				</div>
+				<button
+					onclick={addFriendByEmail}
+					disabled={emailResult.alreadyFriend || emailAdded}
+					class="rounded-lg px-3 py-1.5 text-xs font-semibold"
+					style="border:{emailResult.alreadyFriend || emailAdded
+						? 'none'
+						: '1px solid var(--color-accent)'}; background:{emailResult.alreadyFriend || emailAdded
+						? 'var(--color-overlap-bg)'
+						: '#fff'}; color:var(--color-accent); cursor:{emailResult.alreadyFriend || emailAdded
+						? 'default'
+						: 'pointer'}"
+				>
+					{emailResult.alreadyFriend || emailAdded ? 'Added ✓' : 'Add friend'}
+				</button>
+			</div>
+		{:else}
+			<p class="m-0 text-[11.5px] leading-relaxed text-muted">
+				No one on Loose Days uses that email yet.
+			</p>
+			<button
+				onclick={sendInvite}
+				class="cursor-pointer self-start rounded-[10px] border-none bg-chip px-4 py-2 text-[12.5px] font-semibold text-ink"
+			>
+				{inviteSent ? 'Invited ✓' : 'Invite them'}
+			</button>
+		{/if}
+	{/if}
 </div>
