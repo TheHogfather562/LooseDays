@@ -58,6 +58,7 @@ async fn main() -> anyhow::Result<()> {
 		.route("/api/onboarding/complete", post(handlers::misc::onboarding_complete))
 		.route("/api/me/phone", post(handlers::misc::set_phone))
 		.route("/api/invites", post(handlers::misc::invite))
+		.route("/api/invite-links", post(handlers::misc::create_invite))
 		.route("/api/calendar", get(handlers::calendar::get_days))
 		.route(
 			"/api/calendar/:date",

@@ -36,8 +36,8 @@ const del = (path: string) => req(path, { method: 'DELETE' });
 
 export const api = {
 	// ---------- Session ----------
-	async sendMagicLink(email: string) {
-		await post('/api/auth/magic-link', { email });
+	async sendMagicLink(email: string, invite?: string) {
+		await post('/api/auth/magic-link', { email, invite });
 		return true;
 	},
 	async logout() {
@@ -94,6 +94,12 @@ export const api = {
 	},
 	async inviteEmail(email: string) {
 		await post('/api/invites', { email });
+	},
+	// Mints a shareable invite-link token to embed in SMS/WhatsApp invites, so a
+	// number-only invitee can allowlist their own email at sign-in.
+	async createInviteLink() {
+		const { token } = await req<{ token: string }>('/api/invite-links', { method: 'POST' });
+		return token;
 	},
 
 	// ---------- App bootstrap ----------

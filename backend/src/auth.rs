@@ -73,6 +73,43 @@ pub async fn email_has_account(pool: &PgPool, email: &str) -> AppResult<bool> {
 	Ok(exists.is_some())
 }
 
+const INVITE_LINK_TTL_DAYS: i64 = 14;
+
+/// Mints a shareable invite-link token for `invited_by`. Unlike an email
+/// invite, this doesn't know who it's for yet — the recipient's email is only
+/// learned (and allowlisted) when they redeem it at sign-in.
+pub async fn create_invite_link(pool: &PgPool, invited_by: Uuid) -> AppResult<String> {
+	let token = new_token();
+	let expires_at = Utc::now() + Duration::days(INVITE_LINK_TTL_DAYS);
+	sqlx::query("INSERT INTO invite_links (token, invited_by, expires_at) VALUES ($1, $2, $3)")
+		.bind(&token)
+		.bind(invited_by)
+		.bind(expires_at)
+		.execute(pool)
+		.await?;
+	Ok(token)
+}
+
+/// Redeems an invite-link token for `email`: if the token exists and hasn't
+/// expired, the email is added to the allowlist (attributed to the token's
+/// inviter) so sign-in can proceed. Multi-use by design — a bulk SMS shares one
+/// link across several recipients — so the token isn't consumed here; the
+/// `expires_at` window is what bounds it. Returns whether the email is now
+/// allowed.
+pub async fn redeem_invite_link(pool: &PgPool, token: &str, email: &str) -> AppResult<bool> {
+	let invited_by = sqlx::query_scalar::<_, Uuid>(
+		"SELECT invited_by FROM invite_links WHERE token = $1 AND expires_at > now()",
+	)
+	.bind(token)
+	.fetch_optional(pool)
+	.await?;
+	let Some(invited_by) = invited_by else {
+		return Ok(false);
+	};
+	invite_email(pool, email, invited_by).await?;
+	Ok(true)
+}
+
 pub async fn invite_email(pool: &PgPool, email: &str, invited_by: Uuid) -> AppResult<()> {
 	let e = normalize_email(email);
 	sqlx::query(
