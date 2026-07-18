@@ -14,3 +14,13 @@ export function whatsappLink(phone: string, body: string): string {
 	// wa.me wants bare digits, no leading +.
 	return `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(body)}`;
 }
+
+// One SMS addressed to several people at once, for firing off a batch of
+// invites in a single hand-off. RFC 5724 allows a comma-separated recipient
+// list; WhatsApp's wa.me has no multi-recipient form, so SMS is the only
+// bulk-capable channel here. Callers should only render this with a non-empty
+// list of real numbers (same rule as smsLink).
+export function bulkSmsLink(phones: string[], body: string): string {
+	const nums = phones.map((p) => p.replace(/[^\d+]/g, '')).filter(Boolean);
+	return `sms:${nums.join(',')}?body=${encodeURIComponent(body)}`;
+}
