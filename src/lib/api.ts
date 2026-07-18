@@ -9,6 +9,7 @@ import type {
 	Availability,
 	Contact,
 	DetailLevel,
+	EmailSearchResult,
 	Friend,
 	Passkey,
 	Poll
@@ -135,6 +136,12 @@ export const api = {
 	},
 	async addFriend(userId: string) {
 		await post('/api/friends', { userId });
+	},
+	async searchEmail(email: string) {
+		return req<EmailSearchResult>('/api/friends/search-email', {
+			method: 'POST',
+			body: JSON.stringify({ email })
+		});
 	},
 
 	// ---------- Personal calendar ----------

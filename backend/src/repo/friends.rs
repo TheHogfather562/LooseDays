@@ -3,9 +3,10 @@ use std::collections::HashSet;
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::auth::normalize_email;
 use crate::error::AppResult;
 use crate::phone::hash_phone;
-use crate::types::{ContactDto, FriendDto};
+use crate::types::{ContactDto, EmailSearchResultDto, FriendDto};
 
 pub async fn get_friends(pool: &PgPool, user_id: Uuid) -> AppResult<Vec<FriendDto>> {
 	let rows = sqlx::query_as::<_, (Uuid, String)>(
@@ -79,6 +80,46 @@ pub async fn match_contacts(
 		});
 	}
 	Ok(out)
+}
+
+/// Looks up an account by email (case/whitespace-insensitive, matching how
+/// emails are normalized at sign-up) so a friend can be found without
+/// needing their phone number in contacts first.
+pub async fn search_by_email(
+	pool: &PgPool,
+	user_id: Uuid,
+	email: &str,
+) -> AppResult<EmailSearchResultDto> {
+	let normalized = normalize_email(email);
+	let found: Option<(Uuid, String)> =
+		sqlx::query_as("SELECT id, display_name FROM users WHERE email = $1")
+			.bind(&normalized)
+			.fetch_optional(pool)
+			.await?;
+
+	let Some((id, display_name)) = found.filter(|(id, _)| *id != user_id) else {
+		return Ok(EmailSearchResultDto {
+			found: false,
+			user_id: None,
+			display_name: None,
+			already_friend: false,
+		});
+	};
+
+	let already_friend: Option<(Uuid,)> = sqlx::query_as(
+		"SELECT friend_id FROM friend_edges WHERE user_id = $1 AND friend_id = $2",
+	)
+	.bind(user_id)
+	.bind(id)
+	.fetch_optional(pool)
+	.await?;
+
+	Ok(EmailSearchResultDto {
+		found: true,
+		user_id: Some(id),
+		display_name: Some(display_name),
+		already_friend: already_friend.is_some(),
+	})
 }
 
 pub async fn add_friend(pool: &PgPool, user_id: Uuid, friend_user_id: Uuid) -> AppResult<()> {

@@ -8,7 +8,7 @@ use crate::error::{AppError, AppResult};
 use crate::extractors::RequireUser;
 use crate::repo::{access, friends};
 use crate::state::AppState;
-use crate::types::{AccessScope, Availability, ContactDto, FriendDto};
+use crate::types::{AccessScope, Availability, ContactDto, EmailSearchResultDto, FriendDto};
 use std::collections::HashMap;
 
 pub async fn list_friends(
@@ -67,6 +67,22 @@ pub async fn match_contacts(
 	)
 	.await?;
 	Ok(Json(contacts))
+}
+
+#[derive(Deserialize)]
+pub struct SearchEmailBody {
+	email: Option<String>,
+}
+
+pub async fn search_email(
+	State(state): State<AppState>,
+	RequireUser(user): RequireUser,
+	Json(body): Json<SearchEmailBody>,
+) -> AppResult<Json<EmailSearchResultDto>> {
+	let Some(email) = body.email.filter(|e| e.contains('@')) else {
+		return Err(AppError::BadRequest("invalid email".into()));
+	};
+	Ok(Json(friends::search_by_email(&state.pool, user.id, &email).await?))
 }
 
 #[derive(Deserialize)]
