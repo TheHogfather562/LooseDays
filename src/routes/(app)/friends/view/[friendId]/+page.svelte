@@ -110,7 +110,11 @@
 	</div>
 </div>
 
-<CalendarMonthGrid cells={grid} cellSize={44} />
+<CalendarMonthGrid
+	cells={grid}
+	cellSize={44}
+	onSwipe={(dir) => (monthOffset += dir === 'left' ? 1 : -1)}
+/>
 
 <div class="mx-[22px] mt-[18px] mb-5 flex flex-wrap gap-3.5 text-[11px] text-subtext">
 	{#each legend as leg (leg.label)}

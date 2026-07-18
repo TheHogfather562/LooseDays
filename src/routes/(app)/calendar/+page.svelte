@@ -117,7 +117,12 @@
 </div>
 <p class="m-0 mb-3.5 px-[22px] text-[12.5px] text-subtext-2">Tap a day to set your status</p>
 
-<CalendarMonthGrid cells={grid.cells} cellSize={50} onDayClick={cycleDay} />
+<CalendarMonthGrid
+	cells={grid.cells}
+	cellSize={50}
+	onDayClick={cycleDay}
+	onSwipe={(dir) => (dir === 'left' ? nextMonth() : prevMonth())}
+/>
 
 <div class="mx-[22px] mt-[18px] mb-1.5 flex gap-3.5 text-[11px] text-subtext">
 	<div class="flex items-center gap-1.5">
