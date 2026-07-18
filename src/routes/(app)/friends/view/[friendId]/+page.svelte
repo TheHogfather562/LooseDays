@@ -46,29 +46,32 @@
 		const month = base.getMonth();
 		const daysInMonth = new Date(year, month + 1, 0).getDate();
 		const startWeekday = mondayFirstWeekday(new Date(year, month, 1));
-		const cells: { date: string | null; day: string; status: CellStatus; overlap: boolean }[] = [];
-		for (let i = 0; i < startWeekday; i++)
-			cells.push({ date: null, day: '', status: null, overlap: false });
+		const cells: { date: string | null; day: string; status: CellStatus }[] = [];
+		for (let i = 0; i < startWeekday; i++) cells.push({ date: null, day: '', status: null });
 		for (let day = 1; day <= daysInMonth; day++) {
 			const ds = dateStr(year, month, day);
 			const theirStatus = friendCal[ds] as 'free' | 'busy' | 'maybe' | undefined;
 			const overlap = overlapAt(theirStatus, ds);
 			let status: CellStatus;
-			if (access?.level === 'full') {
+			if (overlap) {
+				// Solid green dot always wins — it's the "you can meet" signal,
+				// clearer than an open circle tinted with a faint background.
+				status = 'mutual';
+			} else if (access?.level === 'full') {
 				status = theirStatus ?? null;
 			} else {
-				status = overlap ? 'mutual' : null;
+				status = null;
 			}
-			cells.push({ date: ds, day: String(day), status, overlap });
+			cells.push({ date: ds, day: String(day), status });
 		}
-		while (cells.length % 7 !== 0)
-			cells.push({ date: null, day: '', status: null, overlap: false });
+		while (cells.length % 7 !== 0) cells.push({ date: null, day: '', status: null });
 		return cells;
 	});
 
 	const legend = $derived(
 		access?.level === 'full'
 			? [
+					{ status: 'mutual' as CellStatus, label: "you're both free" },
 					{ status: 'free' as CellStatus, label: 'free' },
 					{ status: 'maybe' as CellStatus, label: 'maybe' },
 					{ status: 'busy' as CellStatus, label: 'busy' },
@@ -88,8 +91,8 @@
 />
 <p class="mx-[22px] mt-3 mb-3.5 text-xs leading-relaxed text-subtext-2">
 	{access?.level === 'full'
-		? "You can see their full status and notes. Days you're both free are highlighted so it's easy to spot when you can meet."
-		: "Only days you're both free are highlighted — their busy or maybe days stay private."}
+		? "You can see their full status and notes. Days you're both free are marked with a solid green circle so it's easy to spot when you can meet."
+		: "Only days you're both free are marked — their busy or maybe days stay private."}
 </p>
 
 <div class="mx-[22px] mb-2 flex items-center justify-between">
@@ -122,13 +125,4 @@
 			<StatusDot status={leg.status} size={12} /><span>{leg.label}</span>
 		</div>
 	{/each}
-	{#if access?.level === 'full'}
-		<div class="flex items-center gap-1.5">
-			<span
-				class="inline-block rounded-[4px]"
-				style="width:12px;height:12px;background:var(--color-overlap-bg);border:1px solid var(--color-overlap-text)"
-			></span>
-			<span>you're both free</span>
-		</div>
-	{/if}
 </div>
