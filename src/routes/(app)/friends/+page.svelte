@@ -45,7 +45,15 @@
 	}
 </script>
 
-<h1 class="m-0 px-[22px] pt-[26px] pb-1 font-display text-2xl font-semibold text-ink">Friends</h1>
+<div class="flex items-center justify-between px-[22px] pt-[26px] pb-1">
+	<h1 class="m-0 font-display text-2xl font-semibold text-ink">Friends</h1>
+	<a
+		href={resolve('/friends/add')}
+		class="rounded-lg border-none bg-accent px-3 py-1.5 text-xs font-semibold text-white no-underline"
+	>
+		+ Add friend
+	</a>
+</div>
 
 <div class="flex gap-2.5 px-[18px] pt-3.5 pb-1">
 	<a
