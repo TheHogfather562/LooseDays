@@ -48,10 +48,16 @@ export const api = {
 		});
 	},
 	async passkeyAuthFinish(challengeId: string, credential: unknown) {
-		return req<{ ok: true; redirect: string }>('/api/auth/passkey/finish', {
+		const result = await req<{ ok: true; redirect: string }>('/api/auth/passkey/finish', {
 			method: 'POST',
 			body: JSON.stringify({ challengeId, credential })
 		});
+		// The backend just set the session cookie, but the client-side session
+		// cache doesn't know that yet — without this, navigating to
+		// `result.redirect` re-runs the root layout guard with the stale
+		// signed-out state and immediately bounces back to /signin.
+		db.session = { checked: true, signedIn: true, onboarded: result.redirect !== '/onboarding' };
+		return result;
 	},
 	async passkeyRegisterStart() {
 		return req<{ challengeId: string; publicKey: CreationOptionsJSON }>('/api/passkeys', {
