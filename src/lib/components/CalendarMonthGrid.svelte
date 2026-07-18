@@ -8,8 +8,6 @@
 		status: 'free' | 'busy' | 'maybe' | 'mutual' | null;
 		isToday?: boolean;
 		isSelected?: boolean;
-		/** Both people are free this day — highlighted regardless of status display. */
-		overlap?: boolean;
 	}
 
 	let {
@@ -59,36 +57,24 @@
 			{:else if onDayClick}
 				<button
 					onclick={() => onDayClick(cell.date!)}
-					class="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-[14px] p-0"
+					class="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-[14px] bg-transparent p-0"
 					style="height:{cellSize}px; border:1.5px solid {cell.isSelected
 						? 'var(--color-accent)'
-						: 'transparent'}; background:{cell.overlap ? 'var(--color-overlap-bg)' : 'transparent'}"
+						: 'transparent'}"
 				>
 					<span
 						class="text-[13px]"
 						style="color:{cell.isToday
 							? 'var(--color-accent)'
-							: cell.overlap
-								? 'var(--color-overlap-text)'
-								: 'var(--color-ink-soft)'}; font-weight:{cell.isToday ? 700 : 400}"
+							: 'var(--color-ink-soft)'}; font-weight:{cell.isToday ? 700 : 400}"
 					>
 						{cell.day}
 					</span>
 					<StatusDot status={cell.status} size={15} />
 				</button>
 			{:else}
-				<div
-					class="flex flex-col items-center justify-center gap-1 rounded-[14px]"
-					style="height:{cellSize}px; background:{cell.overlap
-						? 'var(--color-overlap-bg)'
-						: 'transparent'}"
-				>
-					<span
-						class="text-[13px]"
-						style="color:{cell.overlap ? 'var(--color-overlap-text)' : 'var(--color-ink-soft)'}"
-					>
-						{cell.day}
-					</span>
+				<div class="flex flex-col items-center justify-center gap-1" style="height:{cellSize}px">
+					<span class="text-[13px] text-ink-soft">{cell.day}</span>
 					<StatusDot status={cell.status} size={15} />
 				</div>
 			{/if}
