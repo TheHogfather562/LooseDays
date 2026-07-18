@@ -72,7 +72,7 @@
 		{:else}
 			<h1 class="m-0 mb-2 font-display text-[21px] font-semibold text-ink">Sign in</h1>
 			<p class="m-0 mb-[22px] text-[13px] leading-relaxed text-subtext">
-				Enter your email — we'll send a link, no password needed.
+				Enter your email — we'll send a magic link, no password needed.
 			</p>
 			<label class="mb-4 flex flex-col gap-1.5">
 				<span class="text-[12px] font-semibold text-subtext">Email</span>
