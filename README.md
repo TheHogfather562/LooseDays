@@ -160,6 +160,41 @@ Tunnels), point its public hostname route at `http://proxy:80`, and paste
 the token in. Set `PUBLIC_ORIGIN`/`COOKIE_SECURE` in `.env` to match that
 public hostname (`https://...`, `COOKIE_SECURE=true`) before starting.
 
+### Continuous deployment
+
+Two independent GitHub Actions workflows deploy on every push to `main`
+(each only fires when files relevant to it change):
+
+- **`.github/workflows/deploy-frontend.yml`** — runs on GitHub-hosted
+  runners: typechecks, lints, builds the static bundle, and deploys it with
+  `wrangler`. Requires two repo secrets (Settings -> Secrets and variables
+  -> Actions):
+  - `CLOUDFLARE_API_TOKEN` — a token with Workers Scripts:Edit permission
+    for the account (Cloudflare dashboard -> My Profile -> API Tokens).
+  - `CLOUDFLARE_ACCOUNT_ID` — found on the Cloudflare dashboard's Workers &
+    Pages overview page.
+
+- **`.github/workflows/deploy-backend.yml`** — runs `docker compose -f
+  docker-compose.yml -f docker-compose.prod.yml up -d --build` on a
+  **self-hosted runner installed on the box itself** (the NAS or wherever
+  `docker-compose.prod.yml` runs), so nothing needs to accept inbound
+  connections from GitHub — the runner polls GitHub outbound, same as
+  `cloudflared` does. To set it up:
+
+  1. On the box: GitHub repo -> Settings -> Actions -> Runners -> New
+     self-hosted runner, and follow the generated `config.sh` command. When
+     prompted for labels, add `loosedays` (the workflow targets
+     `[self-hosted, loosedays]` specifically, so it won't pick up jobs from
+     any other self-hosted runner on the account).
+  2. Run the runner as a service (`./svc.sh install && ./svc.sh start`) so
+     it survives reboots.
+  3. Make sure `.env` (with `CLOUDFLARE_TUNNEL_TOKEN`, `SERVER_PEPPER`, etc.)
+     already exists in the runner's working copy of the repo — it's
+     gitignored, so checkout won't create it; drop it in once by hand.
+
+  Both workflows can also be triggered manually from the Actions tab
+  (`workflow_dispatch`) if you need to redeploy without a new commit.
+
 ## Development
 
 ```sh
