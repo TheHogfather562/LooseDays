@@ -27,7 +27,10 @@ jobs:
     runs-on: [self-hosted, loosedays]
     defaults:
       run:
-        working-directory: /opt/loosedays
+        # Must stay pointed at the box's real, already-running deploy
+        # checkout (owns the existing loosedays_pgdata volume) — not a
+        # fresh clone, which would risk standing up a second, empty stack.
+        working-directory: /home/ubuntu/LooseDays
     steps:
       - name: Sync repo
         run: |
