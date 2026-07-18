@@ -28,8 +28,12 @@
 		try {
 			const { redirect } = await signInWithPasskey();
 			await goto(redirect === '/onboarding' ? resolve('/onboarding') : resolve('/calendar'));
-		} catch {
-			passkeyError = "Couldn't sign in with that passkey — try again or use your email link.";
+		} catch (err) {
+			console.error('passkey sign-in failed', err);
+			const detail = err instanceof Error ? err.message : '';
+			passkeyError = detail
+				? `Couldn't sign in with that passkey — ${detail}`
+				: "Couldn't sign in with that passkey — try again or use your email link.";
 		} finally {
 			passkeyPending = false;
 		}

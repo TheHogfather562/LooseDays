@@ -25,8 +25,10 @@
 		try {
 			await registerPasskey();
 			passkeys = await api.listPasskeys();
-		} catch {
-			addError = "Couldn't add that passkey — try again.";
+		} catch (err) {
+			console.error('passkey registration failed', err);
+			const detail = err instanceof Error ? err.message : '';
+			addError = detail ? `Couldn't add that passkey — ${detail}` : "Couldn't add that passkey — try again.";
 		} finally {
 			addPending = false;
 		}
