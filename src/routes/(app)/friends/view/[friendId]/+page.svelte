@@ -28,6 +28,11 @@
 
 	type CellStatus = 'free' | 'busy' | 'maybe' | 'mutual' | null;
 
+	function overlapAt(theirStatus: string | undefined, ds: string) {
+		const myStatus = db.calStatuses[ds]?.status ?? null;
+		return theirStatus === 'free' && myStatus === 'free';
+	}
+
 	const monthLabel = $derived.by(() => {
 		const now = new Date();
 		const base = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
@@ -41,21 +46,23 @@
 		const month = base.getMonth();
 		const daysInMonth = new Date(year, month + 1, 0).getDate();
 		const startWeekday = mondayFirstWeekday(new Date(year, month, 1));
-		const cells: { date: string | null; day: string; status: CellStatus }[] = [];
-		for (let i = 0; i < startWeekday; i++) cells.push({ date: null, day: '', status: null });
+		const cells: { date: string | null; day: string; status: CellStatus; overlap: boolean }[] = [];
+		for (let i = 0; i < startWeekday; i++)
+			cells.push({ date: null, day: '', status: null, overlap: false });
 		for (let day = 1; day <= daysInMonth; day++) {
 			const ds = dateStr(year, month, day);
 			const theirStatus = friendCal[ds] as 'free' | 'busy' | 'maybe' | undefined;
+			const overlap = overlapAt(theirStatus, ds);
 			let status: CellStatus;
 			if (access?.level === 'full') {
 				status = theirStatus ?? null;
 			} else {
-				const myStatus = db.calStatuses[ds]?.status ?? null;
-				status = theirStatus === 'free' && myStatus === 'free' ? 'mutual' : null;
+				status = overlap ? 'mutual' : null;
 			}
-			cells.push({ date: ds, day: String(day), status });
+			cells.push({ date: ds, day: String(day), status, overlap });
 		}
-		while (cells.length % 7 !== 0) cells.push({ date: null, day: '', status: null });
+		while (cells.length % 7 !== 0)
+			cells.push({ date: null, day: '', status: null, overlap: false });
 		return cells;
 	});
 
@@ -81,7 +88,7 @@
 />
 <p class="mx-[22px] mt-3 mb-3.5 text-xs leading-relaxed text-subtext-2">
 	{access?.level === 'full'
-		? 'You can see their full status and notes.'
+		? "You can see their full status and notes. Days you're both free are highlighted so it's easy to spot when you can meet."
 		: "Only days you're both free are highlighted — their busy or maybe days stay private."}
 </p>
 
@@ -105,10 +112,19 @@
 
 <CalendarMonthGrid cells={grid} cellSize={44} />
 
-<div class="mx-[22px] mt-[18px] mb-5 flex gap-3.5 text-[11px] text-subtext">
+<div class="mx-[22px] mt-[18px] mb-5 flex flex-wrap gap-3.5 text-[11px] text-subtext">
 	{#each legend as leg (leg.label)}
 		<div class="flex items-center gap-1.5">
 			<StatusDot status={leg.status} size={12} /><span>{leg.label}</span>
 		</div>
 	{/each}
+	{#if access?.level === 'full'}
+		<div class="flex items-center gap-1.5">
+			<span
+				class="inline-block rounded-[4px]"
+				style="width:12px;height:12px;background:var(--color-overlap-bg);border:1px solid var(--color-overlap-text)"
+			></span>
+			<span>you're both free</span>
+		</div>
+	{/if}
 </div>
