@@ -139,11 +139,11 @@ optionally `RESEND_API_KEY`/`EMAIL_FROM` set. Put it behind a Cloudflare
 Tunnel (or any reverse proxy with TLS) rather than exposing it directly.
 
 **Frontend:** `npm run build` produces a static bundle in `build/` — deploy
-it to Cloudflare Pages, Cloudflare Workers (static assets), or any static
-host. `static/_redirects` is already set up for SPA-style fallback routing.
-Whatever serves the frontend needs to route `/api/**` and `/auth/**` to the
-backend's public hostname (same-origin proxying is recommended so session
-cookies stay simple — see `Caddyfile` for the pattern used in local dev).
+it to any static host. `static/_redirects` is already set up for
+SPA-style fallback routing. Whatever serves the frontend needs to route
+`/api/**` and `/auth/**` to the backend's public hostname (same-origin
+proxying is recommended so session cookies stay simple — see `Caddyfile`
+for the pattern used in local dev and by `docker-compose.prod.yml` below).
 
 **Or: the whole stack on one box (e.g. a NAS)** — `docker-compose.prod.yml`
 runs Postgres, the backend, and the Caddy-served frontend together, with a
@@ -159,6 +159,55 @@ Docker connector in the Cloudflare Zero Trust dashboard (Networks ->
 Tunnels), point its public hostname route at `http://proxy:80`, and paste
 the token in. Set `PUBLIC_ORIGIN`/`COOKIE_SECURE` in `.env` to match that
 public hostname (`https://...`, `COOKIE_SECURE=true`) before starting.
+
+### Continuous deployment
+
+`.github/workflows/deploy.yml` redeploys the whole stack — Postgres,
+backend, and the Caddy-served frontend — on every push to `main` (skipping
+docs-only changes). It runs `docker compose -f docker-compose.yml -f
+docker-compose.prod.yml up -d --build` against a **persistent checkout on
+the box itself**, via a **self-hosted GitHub Actions runner** installed on
+that same machine — so nothing needs to accept inbound connections from
+GitHub; the runner polls GitHub outbound, same as the `cloudflared`
+container does.
+
+To set it up on the box (e.g. the Proxmox VM):
+
+1. Clone the repo to a fixed path the workflow will reuse across runs, and
+   populate `.env` there by hand — it's gitignored, so nothing will create
+   it for you:
+   ```sh
+   git clone https://github.com/<you>/loosedays.git /opt/loosedays
+   cd /opt/loosedays && cp .env.example .env && nano .env
+   ```
+   Fill in `SERVER_PEPPER`, `ADMIN_EMAIL`, `PUBLIC_ORIGIN` (your real
+   `https://` domain), `COOKIE_SECURE=true`, and `CLOUDFLARE_TUNNEL_TOKEN`.
+   The workflow runs `git fetch` + `git reset --hard origin/main` in this
+   directory on every deploy, so treat it as deploy-only — don't make local
+   edits here.
+2. Create a dedicated, non-root user to run the runner, and add it to the
+   `docker` group so it can run `docker compose` without `sudo`:
+   ```sh
+   sudo useradd -m -s /bin/bash actions-runner
+   sudo usermod -aG docker actions-runner
+   sudo chown -R actions-runner:actions-runner /opt/loosedays
+   ```
+3. GitHub repo -> Settings -> Actions -> Runners -> New self-hosted runner,
+   and follow the generated download/config commands as the
+   `actions-runner` user. When prompted for labels, add `loosedays` (the
+   workflow targets `[self-hosted, loosedays]` specifically, so it won't
+   pick up jobs from any other self-hosted runner you might register
+   elsewhere).
+4. Install it as a service so it survives reboots:
+   ```sh
+   sudo ./svc.sh install actions-runner
+   sudo ./svc.sh start
+   ```
+
+No GitHub repo secrets are needed for this workflow — everything it needs
+(`CLOUDFLARE_TUNNEL_TOKEN`, etc.) already lives in `/opt/loosedays/.env` on
+the box. It can also be triggered manually from the Actions tab
+(`workflow_dispatch`) if you need to redeploy without a new commit.
 
 ## Development
 
