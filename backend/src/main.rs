@@ -9,6 +9,7 @@ mod phone;
 mod repo;
 mod state;
 mod types;
+mod webauthn;
 
 use axum::routing::{delete, get, patch, post};
 use axum::Router;
@@ -38,13 +39,22 @@ async fn main() -> anyhow::Result<()> {
 	}
 
 	let port = config.port;
-	let state = AppState { pool, config };
+	let webauthn_instance = webauthn::build(&config)?;
+	let state = AppState { pool, config, webauthn: webauthn_instance };
 
 	let app = Router::new()
 		.route("/api/auth/magic-link", post(handlers::auth::magic_link))
 		.route("/api/auth/logout", post(handlers::auth::logout))
 		.route("/auth/callback", get(handlers::auth::callback))
 		.route("/api/session", get(handlers::session::get_session))
+		.route("/api/auth/passkey/start", post(handlers::passkeys::auth_start))
+		.route("/api/auth/passkey/finish", post(handlers::passkeys::auth_finish))
+		.route(
+			"/api/passkeys",
+			get(handlers::passkeys::list).post(handlers::passkeys::register_start),
+		)
+		.route("/api/passkeys/finish", post(handlers::passkeys::register_finish))
+		.route("/api/passkeys/:id", delete(handlers::passkeys::remove))
 		.route("/api/onboarding/complete", post(handlers::misc::onboarding_complete))
 		.route("/api/me/phone", post(handlers::misc::set_phone))
 		.route("/api/invites", post(handlers::misc::invite))

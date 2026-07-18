@@ -23,6 +23,7 @@ services:
       PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:8787}
       DEFAULT_PHONE_REGION: ${DEFAULT_PHONE_REGION:-US}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      RP_NAME: ${RP_NAME:-Loose Days}
       PORT: 8080
     depends_on:
       postgres:

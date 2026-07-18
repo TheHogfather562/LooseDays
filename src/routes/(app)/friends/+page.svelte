@@ -64,6 +64,14 @@
 		<div class="text-[12.5px] font-semibold text-ink">Who can see me</div>
 		<div class="mt-0.5 text-[11px] text-subtext-2">{standingCountLabel}</div>
 	</a>
+	<a
+		href={resolve('/account')}
+		class="flex-1 rounded-2xl border bg-white px-3.5 py-3 text-left no-underline"
+		style="border-color:var(--color-line)"
+	>
+		<div class="text-[12.5px] font-semibold text-ink">Account</div>
+		<div class="mt-0.5 text-[11px] text-subtext-2">Passkeys, sign out</div>
+	</a>
 </div>
 
 <div class="flex flex-col gap-2.5 px-[18px] pt-[18px]">

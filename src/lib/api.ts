@@ -4,7 +4,16 @@
 
 import { db } from './db.svelte';
 import { rememberPhone } from './phonebook';
-import type { AccessScope, Availability, Contact, DetailLevel, Friend, Poll } from './types';
+import type {
+	AccessScope,
+	Availability,
+	Contact,
+	DetailLevel,
+	Friend,
+	Passkey,
+	Poll
+} from './types';
+import type { CreationOptionsJSON, RequestOptionsJSON } from './webauthn';
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
 	const res = await fetch(path, {
@@ -32,6 +41,31 @@ export const api = {
 	},
 	async logout() {
 		await post('/api/auth/logout');
+	},
+	async passkeyAuthStart() {
+		return req<{ challengeId: string; publicKey: RequestOptionsJSON }>('/api/auth/passkey/start', {
+			method: 'POST'
+		});
+	},
+	async passkeyAuthFinish(challengeId: string, credential: unknown) {
+		return req<{ ok: true; redirect: string }>('/api/auth/passkey/finish', {
+			method: 'POST',
+			body: JSON.stringify({ challengeId, credential })
+		});
+	},
+	async passkeyRegisterStart() {
+		return req<{ challengeId: string; publicKey: CreationOptionsJSON }>('/api/passkeys', {
+			method: 'POST'
+		});
+	},
+	async passkeyRegisterFinish(challengeId: string, credential: unknown, label?: string) {
+		await post('/api/passkeys/finish', { challengeId, credential, label });
+	},
+	async listPasskeys() {
+		return req<Passkey[]>('/api/passkeys');
+	},
+	async removePasskey(id: string) {
+		await del(`/api/passkeys/${id}`);
 	},
 	async loadSession() {
 		const s = await req<{
