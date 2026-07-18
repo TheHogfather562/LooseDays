@@ -16,8 +16,10 @@
 	let searching = $state(false);
 	let importing = $state(false);
 	let error = $state('');
-
-	const inviteMsg = inviteMessage();
+	// Invite-link token embedded in the SMS hand-off so recipients who aren't on
+	// Loose Days yet can allowlist their own email at sign-in. Fetched lazily the
+	// first time there's someone to invite.
+	let inviteToken = $state('');
 
 	// Enough digits to be a plausible number without guessing at country rules —
 	// the backend does the real parsing/normalization.
@@ -25,6 +27,15 @@
 	const valid = $derived(digits.length >= 6);
 
 	const invitees = $derived(list.filter((c) => !c.matched));
+
+	$effect(() => {
+		if (invitees.length > 0 && !inviteToken) {
+			api.createInviteLink().then(
+				(token) => (inviteToken = token),
+				(err) => console.error('invite link failed', err)
+			);
+		}
+	});
 
 	function keyOf(phone: string): string {
 		return phone.replace(/\D/g, '');
@@ -88,7 +99,7 @@
 	const bulkInviteHref = $derived(
 		bulkSmsLink(
 			invitees.map((c) => c.phone),
-			inviteMsg
+			inviteMessage(inviteToken)
 		)
 	);
 </script>
@@ -179,15 +190,24 @@
 
 	{#if invitees.length > 0}
 		<div class="flex flex-col gap-1.5 px-[22px] pt-4">
-			<a
-				href={bulkInviteHref}
-				rel="external"
-				class="self-start rounded-[10px] bg-chip px-4 py-2 text-[12.5px] font-semibold text-ink no-underline"
-			>
-				Send {invitees.length} invite{invitees.length === 1 ? '' : 's'}
-			</a>
+			{#if inviteToken}
+				<a
+					href={bulkInviteHref}
+					rel="external"
+					class="self-start rounded-[10px] bg-chip px-4 py-2 text-[12.5px] font-semibold text-ink no-underline"
+				>
+					Send {invitees.length} invite{invitees.length === 1 ? '' : 's'}
+				</a>
+			{:else}
+				<span
+					class="self-start rounded-[10px] bg-chip px-4 py-2 text-[12.5px] font-semibold text-muted"
+				>
+					Preparing invites…
+				</span>
+			{/if}
 			<p class="m-0 text-[11px] leading-relaxed text-muted-2">
-				Opens your messaging app with everyone not yet on Loose Days, ready to text.
+				Opens your messaging app with everyone not yet on Loose Days, ready to text — the link lets
+				them join with their own email.
 			</p>
 		</div>
 	{/if}

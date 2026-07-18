@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import AppShell from '$lib/components/AppShell.svelte';
 	import { api } from '$lib/api';
 	import { passkeysSupported, signInWithPasskey } from '$lib/webauthn';
@@ -10,16 +11,20 @@
 	let passkeyError = $state('');
 	let passkeyPending = $state(false);
 
+	// An invite link (?invite=…) from an SMS/WhatsApp invite lets a brand-new
+	// person onboard themselves — redeeming it allowlists the email they enter.
+	const invite = $derived(page.url.searchParams.get('invite') ?? undefined);
+
 	const disabled = $derived(!email.includes('@'));
 
 	async function send() {
 		if (disabled) return;
-		await api.sendMagicLink(email);
+		await api.sendMagicLink(email, invite);
 		sent = true;
 	}
 
 	async function resend() {
-		await api.sendMagicLink(email);
+		await api.sendMagicLink(email, invite);
 	}
 
 	async function withPasskey() {
@@ -112,7 +117,11 @@
 			{/if}
 
 			<p class="mt-4 mb-0 text-[11.5px] leading-relaxed text-muted-2">
-				Sign-up is invite-only right now — ask a friend already on Loose Days to add you.
+				{#if invite}
+					You've been invited to Loose Days — enter your email and we'll send you a link to join.
+				{:else}
+					Sign-up is invite-only right now — ask a friend already on Loose Days to add you.
+				{/if}
 			</p>
 		{/if}
 	</div>

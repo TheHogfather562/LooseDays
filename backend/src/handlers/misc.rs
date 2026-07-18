@@ -3,7 +3,9 @@ use axum::Json;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::auth::{complete_onboarding, email_has_account, invite_email, set_user_phone};
+use crate::auth::{
+	complete_onboarding, create_invite_link, email_has_account, invite_email, set_user_phone,
+};
 use crate::email::send_invite_email;
 use crate::error::{AppError, AppResult};
 use crate::extractors::RequireUser;
@@ -65,4 +67,16 @@ pub async fn invite(
 		send_invite_email(&state.config, &email, &user.display_name, &signin_url).await;
 	}
 	Ok(Json(json!({ "ok": true })))
+}
+
+/// Mints a shareable invite-link token the caller can drop into the SMS/WhatsApp
+/// invites they hand off. Redeeming it at sign-in allowlists the invitee's own
+/// email — the missing piece for number-only invites, where we never learn the
+/// email up front.
+pub async fn create_invite(
+	State(state): State<AppState>,
+	RequireUser(user): RequireUser,
+) -> AppResult<Json<serde_json::Value>> {
+	let token = create_invite_link(&state.pool, user.id).await?;
+	Ok(Json(json!({ "token": token })))
 }

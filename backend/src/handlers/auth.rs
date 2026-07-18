@@ -8,7 +8,7 @@ use time::Duration as TimeDuration;
 
 use crate::auth::{
 	consume_magic_link, create_magic_link, create_session, destroy_session, find_or_create_user_by_email,
-	is_email_allowed, SESSION_COOKIE,
+	is_email_allowed, redeem_invite_link, SESSION_COOKIE,
 };
 use crate::email::send_magic_link_email;
 use crate::error::AppResult;
@@ -17,6 +17,10 @@ use crate::state::AppState;
 #[derive(Deserialize)]
 pub struct MagicLinkRequest {
 	email: Option<String>,
+	// Optional invite-link token (from an SMS invite's ?invite=… link). Lets a
+	// brand-new person whose email was never directly allowlisted onboard
+	// themselves, since a number-only invite never knew their email.
+	invite: Option<String>,
 }
 
 pub async fn magic_link(State(state): State<AppState>, Json(body): Json<MagicLinkRequest>) -> AppResult<Response> {
@@ -24,9 +28,17 @@ pub async fn magic_link(State(state): State<AppState>, Json(body): Json<MagicLin
 		return Ok((axum::http::StatusCode::BAD_REQUEST, Json(json!({ "error": "invalid email" }))).into_response());
 	};
 
+	// An unallowlisted email can still be let in by redeeming a valid invite
+	// link — the inviter vouched for whoever holds it.
+	let allowed = is_email_allowed(&state.pool, &email).await?
+		|| match &body.invite {
+			Some(token) => redeem_invite_link(&state.pool, token, &email).await?,
+			None => false,
+		};
+
 	// Always respond the same way whether or not the email is allowed, so
 	// the invite-only allowlist can't be probed from the sign-in form.
-	if is_email_allowed(&state.pool, &email).await? {
+	if allowed {
 		let token = create_magic_link(&state.pool, &email).await?;
 		let link = format!("{}/auth/callback?token={token}", state.config.public_origin);
 		send_magic_link_email(&state.config, &email, &link).await;
