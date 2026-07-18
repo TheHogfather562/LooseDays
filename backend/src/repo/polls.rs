@@ -34,7 +34,18 @@ fn new_token() -> String {
 	base64::Engine::encode(&base64::engine::general_purpose::URL_SAFE_NO_PAD, bytes)
 }
 
-async fn build_poll(pool: &PgPool, poll: PollRow, viewer_invitee_id: Option<Uuid>) -> AppResult<PollDto> {
+/// `include_all_tokens` controls whether every invitee's `access_token` is
+/// serialized, or only the viewer's own. The tokens are bearer credentials
+/// for responding to a poll, so they're only ever handed out wholesale to the
+/// creator right after creation (to build the invite links they send out) —
+/// never on a read path, where leaking them would let any one invitee harvest
+/// every other invitee's token and overwrite/read their responses.
+async fn build_poll(
+	pool: &PgPool,
+	poll: PollRow,
+	viewer_invitee_id: Option<Uuid>,
+	include_all_tokens: bool,
+) -> AppResult<PollDto> {
 	let invitees = sqlx::query_as::<_, InviteeRow>(
 		"SELECT id, user_id, name, access_token, status FROM poll_invitees WHERE poll_id = $1 ORDER BY created_at",
 	)
@@ -66,7 +77,11 @@ async fn build_poll(pool: &PgPool, poll: PollRow, viewer_invitee_id: Option<Uuid
 				phone: None,
 				name: inv.name,
 				status: InviteeStatus::try_from(inv.status)?,
-				access_token: Some(inv.access_token),
+				access_token: if include_all_tokens || Some(inv.id) == viewer_invitee_id {
+					Some(inv.access_token)
+				} else {
+					None
+				},
 				is_me: Some(inv.id) == viewer_invitee_id,
 			})
 		})
@@ -164,7 +179,9 @@ pub async fn create_poll(
 	.fetch_one(pool)
 	.await?;
 
-	let mut dto = build_poll(pool, poll_row, Some(my_invitee_id)).await?;
+	// Creation is the one place the creator legitimately needs every
+	// invitee's token — to build the SMS/WhatsApp invite links they send out.
+	let mut dto = build_poll(pool, poll_row, Some(my_invitee_id), true).await?;
 
 	// Echo back the just-submitted raw phones on the invitees that came from
 	// phoneInvitees, in this response only, so the "send invites" screen can
@@ -204,7 +221,7 @@ pub async fn list_polls_for_user(pool: &PgPool, user_id: Uuid) -> AppResult<Vec<
 		.bind(user_id)
 		.fetch_optional(pool)
 		.await?;
-		out.push(build_poll(pool, row, mine).await?);
+		out.push(build_poll(pool, row, mine, false).await?);
 	}
 	Ok(out)
 }
@@ -231,7 +248,7 @@ pub async fn get_poll_for_user(pool: &PgPool, poll_id: Uuid, user_id: Uuid) -> A
 	if row.creator_id != user_id && mine.is_none() {
 		return Ok(None);
 	}
-	Ok(Some(build_poll(pool, row, mine).await?))
+	Ok(Some(build_poll(pool, row, mine, false).await?))
 }
 
 async fn save_responses(
@@ -304,7 +321,7 @@ pub async fn get_poll_by_token(pool: &PgPool, token: &str) -> AppResult<Option<P
 	else {
 		return Ok(None);
 	};
-	Ok(Some(build_poll(pool, row, Some(invitee_id)).await?))
+	Ok(Some(build_poll(pool, row, Some(invitee_id), false).await?))
 }
 
 pub async fn submit_response_by_token(
