@@ -9,7 +9,7 @@
 
 <div class="px-[22px] pt-2 pb-1">
 	<p class="m-0 text-[12.5px] leading-relaxed text-subtext-2">
-		Friends match you by phone number — check your contacts against Loose Days.
+		Friends match you by phone number — look someone up to add them, or invite the rest.
 	</p>
 </div>
 
