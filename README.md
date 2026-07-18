@@ -171,36 +171,38 @@ that same machine — so nothing needs to accept inbound connections from
 GitHub; the runner polls GitHub outbound, same as the `cloudflared`
 container does.
 
-To set it up on the box (e.g. the Proxmox VM):
+The workflow points at whatever directory already holds your live checkout
+(`working-directory:` in `deploy.yml`) — it deliberately does **not** clone
+a fresh copy, because that would risk standing up a second stack against an
+empty Postgres volume instead of the real `loosedays_pgdata` one. If your
+existing checkout lives somewhere other than what's currently configured,
+update `working-directory:` in `deploy.yml` to match before going further.
+The Compose project name is pinned explicitly (`name: loosedays` in
+`docker-compose.yml`), so it always resolves to `loosedays_pgdata`
+regardless of which directory or user runs the command.
 
-1. Clone the repo to a fixed path the workflow will reuse across runs, and
-   populate `.env` there by hand — it's gitignored, so nothing will create
-   it for you:
+To set it up on the box (e.g. the Proxmox VM), reusing the existing clone
+and its existing OS user rather than adding a new one:
+
+1. Confirm the existing checkout is clean and has no uncommitted local
+   edits (`git status` in it) — the workflow runs `git fetch` + `git reset
+   --hard origin/main` there on every deploy, so anything uncommitted would
+   be silently discarded on the first automated run. `.env` is gitignored
+   and untouched by this either way.
+2. If the user that owns the checkout isn't already in the `docker` group,
+   add it (log out/in, or start a new shell, for the group change to take
+   effect):
    ```sh
-   git clone https://github.com/<you>/loosedays.git /opt/loosedays
-   cd /opt/loosedays && cp .env.example .env && nano .env
-   ```
-   Fill in `SERVER_PEPPER`, `ADMIN_EMAIL`, `PUBLIC_ORIGIN` (your real
-   `https://` domain), `COOKIE_SECURE=true`, and `CLOUDFLARE_TUNNEL_TOKEN`.
-   The workflow runs `git fetch` + `git reset --hard origin/main` in this
-   directory on every deploy, so treat it as deploy-only — don't make local
-   edits here.
-2. Create a dedicated, non-root user to run the runner, and add it to the
-   `docker` group so it can run `docker compose` without `sudo`:
-   ```sh
-   sudo useradd -m -s /bin/bash actions-runner
-   sudo usermod -aG docker actions-runner
-   sudo chown -R actions-runner:actions-runner /opt/loosedays
+   sudo usermod -aG docker <user>
    ```
 3. GitHub repo -> Settings -> Actions -> Runners -> New self-hosted runner,
-   and follow the generated download/config commands as the
-   `actions-runner` user. When prompted for labels, add `loosedays` (the
-   workflow targets `[self-hosted, loosedays]` specifically, so it won't
-   pick up jobs from any other self-hosted runner you might register
-   elsewhere).
+   and follow the generated download/config commands **as that same
+   user**. When prompted for labels, add `loosedays` (the workflow targets
+   `[self-hosted, loosedays]` specifically, so it won't pick up jobs from
+   any other self-hosted runner you might register elsewhere).
 4. Install it as a service so it survives reboots:
    ```sh
-   sudo ./svc.sh install actions-runner
+   sudo ./svc.sh install <user>
    sudo ./svc.sh start
    ```
 
