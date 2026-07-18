@@ -139,11 +139,11 @@ optionally `RESEND_API_KEY`/`EMAIL_FROM` set. Put it behind a Cloudflare
 Tunnel (or any reverse proxy with TLS) rather than exposing it directly.
 
 **Frontend:** `npm run build` produces a static bundle in `build/` — deploy
-it to Cloudflare Pages, Cloudflare Workers (static assets), or any static
-host. `static/_redirects` is already set up for SPA-style fallback routing.
-Whatever serves the frontend needs to route `/api/**` and `/auth/**` to the
-backend's public hostname (same-origin proxying is recommended so session
-cookies stay simple — see `Caddyfile` for the pattern used in local dev).
+it to any static host. `static/_redirects` is already set up for
+SPA-style fallback routing. Whatever serves the frontend needs to route
+`/api/**` and `/auth/**` to the backend's public hostname (same-origin
+proxying is recommended so session cookies stay simple — see `Caddyfile`
+for the pattern used in local dev and by `docker-compose.prod.yml` below).
 
 **Or: the whole stack on one box (e.g. a NAS)** — `docker-compose.prod.yml`
 runs Postgres, the backend, and the Caddy-served frontend together, with a
@@ -208,11 +208,6 @@ No GitHub repo secrets are needed for this workflow — everything it needs
 (`CLOUDFLARE_TUNNEL_TOKEN`, etc.) already lives in `/opt/loosedays/.env` on
 the box. It can also be triggered manually from the Actions tab
 (`workflow_dispatch`) if you need to redeploy without a new commit.
-
-Note: `wrangler.jsonc` is currently unused in this deployment mode (it's
-for the separate Cloudflare Workers static-hosting path described above) —
-harmless to leave in place, but safe to delete if you're committed to the
-whole-stack-on-one-box model.
 
 ## Development
 
