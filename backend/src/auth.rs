@@ -60,6 +60,19 @@ pub async fn is_email_allowed(pool: &PgPool, email: &str) -> AppResult<bool> {
 	Ok(invited.is_some())
 }
 
+/// Whether an account already exists for this email. Used to decide whether an
+/// invite should actually send a "you've been invited" email — existing users
+/// don't need one (and shouldn't be told they've been "invited" to something
+/// they already have).
+pub async fn email_has_account(pool: &PgPool, email: &str) -> AppResult<bool> {
+	let e = normalize_email(email);
+	let exists = sqlx::query_scalar::<_, i32>("SELECT 1 FROM users WHERE email = $1")
+		.bind(&e)
+		.fetch_optional(pool)
+		.await?;
+	Ok(exists.is_some())
+}
+
 pub async fn invite_email(pool: &PgPool, email: &str, invited_by: Uuid) -> AppResult<()> {
 	let e = normalize_email(email);
 	sqlx::query(

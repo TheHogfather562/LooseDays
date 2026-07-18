@@ -2,9 +2,9 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import BackHeader from '$lib/components/BackHeader.svelte';
+	import InviteLinks from '$lib/components/InviteLinks.svelte';
 	import { api } from '$lib/api';
 	import { fmtRangeLabel } from '$lib/format';
-	import { smsLink, whatsappLink } from '$lib/links';
 	import { getRememberedPhone } from '$lib/phonebook';
 	import type { Friend, Poll } from '$lib/types';
 
@@ -231,26 +231,9 @@
 			>
 				<div>
 					<div class="text-[13.5px] font-semibold text-ink">{t.name}</div>
-					<div class="text-[11.5px] text-muted">{t.phone}</div>
+					<div class="text-[11.5px] text-muted">{t.phone || 'No number on this device'}</div>
 				</div>
-				<div class="flex gap-2">
-					<a
-						href={smsLink(t.phone, inviteMsgFor(t))}
-						rel="external"
-						class="rounded-lg border px-2.5 py-[7px] text-xs font-semibold text-ink no-underline"
-						style="border-color:var(--color-line)"
-					>
-						SMS
-					</a>
-					<a
-						href={whatsappLink(t.phone, inviteMsgFor(t))}
-						rel="external"
-						class="rounded-lg border px-2.5 py-[7px] text-xs font-semibold text-ink no-underline"
-						style="border-color:var(--color-line)"
-					>
-						WhatsApp
-					</a>
-				</div>
+				<InviteLinks phone={t.phone} message={inviteMsgFor(t)} />
 			</div>
 		{/each}
 	</div>
