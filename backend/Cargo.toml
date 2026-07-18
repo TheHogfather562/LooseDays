@@ -28,3 +28,5 @@ async-trait = "0.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 dotenvy = "0.15"
+url = "2"
+webauthn-rs = { version = "0.5", features = ["conditional-ui", "danger-allow-state-serialisation"] }

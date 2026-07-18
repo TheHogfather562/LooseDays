@@ -85,3 +85,10 @@ export interface Poll {
 	invitees: PollInvitee[];
 	responses: PollResponses;
 }
+
+export interface Passkey {
+	id: string;
+	label: string;
+	createdAt: string;
+	lastUsedAt: string | null;
+}

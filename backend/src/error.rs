@@ -44,4 +44,13 @@ impl IntoResponse for AppError {
 	}
 }
 
+/// Almost all WebAuthn failures (expired/replayed challenge, signature
+/// mismatch, wrong RP ID) are the client presenting something invalid rather
+/// than a server bug, so these map to 400 rather than a 500.
+impl From<webauthn_rs::prelude::WebauthnError> for AppError {
+	fn from(e: webauthn_rs::prelude::WebauthnError) -> Self {
+		AppError::BadRequest(e.to_string())
+	}
+}
+
 pub type AppResult<T> = Result<T, AppError>;

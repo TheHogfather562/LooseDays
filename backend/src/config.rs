@@ -15,6 +15,10 @@ pub struct Config {
 	/// Region used to interpret phone numbers with no country code, e.g. "US".
 	pub default_phone_region: String,
 	pub cookie_secure: bool,
+	/// Display name shown by authenticators during passkey registration. The
+	/// WebAuthn RP ID/origin are derived from `public_origin` instead of a
+	/// separate setting, since they must match it anyway.
+	pub rp_name: String,
 }
 
 impl Config {
@@ -36,6 +40,7 @@ impl Config {
 			cookie_secure: env::var("COOKIE_SECURE")
 				.map(|v| v == "true")
 				.unwrap_or_else(|_| !env::var("PUBLIC_ORIGIN").unwrap_or_default().starts_with("http://")),
+			rp_name: env::var("RP_NAME").unwrap_or_else(|_| "Loose Days".to_string()),
 		}
 	}
 }

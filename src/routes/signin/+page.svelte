@@ -1,9 +1,14 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import AppShell from '$lib/components/AppShell.svelte';
 	import { api } from '$lib/api';
+	import { passkeysSupported, signInWithPasskey } from '$lib/webauthn';
 
 	let email = $state('');
 	let sent = $state(false);
+	let passkeyError = $state('');
+	let passkeyPending = $state(false);
 
 	const disabled = $derived(!email.includes('@'));
 
@@ -15,6 +20,19 @@
 
 	async function resend() {
 		await api.sendMagicLink(email);
+	}
+
+	async function withPasskey() {
+		passkeyError = '';
+		passkeyPending = true;
+		try {
+			const { redirect } = await signInWithPasskey();
+			await goto(redirect === '/onboarding' ? resolve('/onboarding') : resolve('/calendar'));
+		} catch {
+			passkeyError = "Couldn't sign in with that passkey — try again or use your email link.";
+		} finally {
+			passkeyPending = false;
+		}
 	}
 </script>
 
@@ -72,6 +90,23 @@
 			>
 				Send magic link
 			</button>
+
+			{#if passkeysSupported()}
+				<button
+					onclick={withPasskey}
+					disabled={passkeyPending}
+					class="mt-3 w-full rounded-[10px] border py-3 text-sm font-semibold text-ink"
+					style="border-color:var(--color-line); cursor:{passkeyPending ? 'default' : 'pointer'}"
+				>
+					{passkeyPending ? 'Waiting for passkey…' : 'Sign in with a passkey'}
+				</button>
+				{#if passkeyError}
+					<p class="mt-2 mb-0 text-[11.5px] leading-relaxed" style="color:var(--color-danger)">
+						{passkeyError}
+					</p>
+				{/if}
+			{/if}
+
 			<p class="mt-4 mb-0 text-[11.5px] leading-relaxed text-muted-2">
 				Sign-up is invite-only right now — ask a friend already on Loose Days to add you.
 			</p>

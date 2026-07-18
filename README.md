@@ -16,8 +16,11 @@ Two ways to coordinate:
 
 Auth is email magic link (no passwords). Sign-up is invite-only: the first
 account is bootstrapped from an env var, and every other person has to be
-invited from inside the app. Phone numbers are only ever stored as a salted
-hash (used to match friends against each other), never in the clear.
+invited from inside the app. Once signed in, a user can also register a
+passkey (Account screen) for faster, usernameless sign-in on that device
+afterward — magic link remains the way to sign in on a new device or if a
+passkey is lost. Phone numbers are only ever stored as a salted hash (used to
+match friends against each other), never in the clear.
 
 ## Architecture
 

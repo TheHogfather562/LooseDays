@@ -157,3 +157,12 @@ pub struct PhoneInviteeInput {
 	pub phone: String,
 	pub name: String,
 }
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct PasskeyDto {
+	pub id: Uuid,
+	pub label: String,
+	pub created_at: chrono::DateTime<chrono::Utc>,
+	pub last_used_at: Option<chrono::DateTime<chrono::Utc>>,
+}

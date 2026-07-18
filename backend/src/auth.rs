@@ -130,6 +130,16 @@ pub async fn find_or_create_user_by_email(pool: &PgPool, email: &str) -> AppResu
 	Ok(row.into())
 }
 
+pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> AppResult<Option<SessionUserDto>> {
+	let row = sqlx::query_as::<_, UserRow>(
+		"SELECT id, email, phone_hash, display_name, onboarded FROM users WHERE id = $1",
+	)
+	.bind(user_id)
+	.fetch_optional(pool)
+	.await?;
+	Ok(row.map(Into::into))
+}
+
 pub async fn create_session(pool: &PgPool, user_id: Uuid) -> AppResult<(Uuid, chrono::DateTime<Utc>)> {
 	let expires_at = Utc::now() + Duration::days(SESSION_TTL_DAYS);
 	let id: Uuid = sqlx::query_scalar(
