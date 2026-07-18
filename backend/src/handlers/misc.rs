@@ -3,7 +3,8 @@ use axum::Json;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::auth::{complete_onboarding, invite_email, set_user_phone};
+use crate::auth::{complete_onboarding, email_has_account, invite_email, set_user_phone};
+use crate::email::send_invite_email;
 use crate::error::{AppError, AppResult};
 use crate::extractors::RequireUser;
 use crate::state::AppState;
@@ -53,6 +54,15 @@ pub async fn invite(
 	let Some(email) = body.email.filter(|e| e.contains('@')) else {
 		return Err(AppError::BadRequest("invalid email".into()));
 	};
+
+	// Allowlist the email either way (idempotent). Only send an invite email
+	// to genuinely new people — someone who already has an account doesn't need
+	// to be told they've been "invited".
+	let already_user = email_has_account(&state.pool, &email).await?;
 	invite_email(&state.pool, &email, user.id).await?;
+	if !already_user {
+		let signin_url = format!("{}/signin", state.config.public_origin);
+		send_invite_email(&state.config, &email, &user.display_name, &signin_url).await;
+	}
 	Ok(Json(json!({ "ok": true })))
 }
