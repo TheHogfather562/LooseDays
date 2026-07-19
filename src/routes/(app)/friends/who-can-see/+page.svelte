@@ -3,6 +3,16 @@
 	import BackHeader from '$lib/components/BackHeader.svelte';
 	import { db } from '$lib/db.svelte';
 	import { api } from '$lib/api';
+	import { withToast } from '$lib/toast.svelte';
+
+	async function revoke(id: string) {
+		const ok = await withToast(() => api.revokeStandingAccess(id), {
+			success: 'Access revoked.',
+			error: "Couldn't revoke access — try again."
+		});
+		// api.* removes the row optimistically; restore it if the call failed.
+		if (!ok) await api.getStandingAccess().catch(() => {});
+	}
 </script>
 
 <BackHeader title="Who can see my calendar" href={resolve('/friends')} />
@@ -20,7 +30,7 @@
 				</div>
 			</div>
 			<button
-				onclick={() => api.revokeStandingAccess(row.id)}
+				onclick={() => revoke(row.id)}
 				class="cursor-pointer rounded-lg border bg-white px-3 py-1.5 text-xs font-semibold"
 				style="border-color:var(--color-line); color:var(--color-danger)"
 			>

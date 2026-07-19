@@ -4,7 +4,8 @@
 	import BackHeader from '$lib/components/BackHeader.svelte';
 	import InviteLinks from '$lib/components/InviteLinks.svelte';
 	import { api } from '$lib/api';
-	import { fmtRangeLabel } from '$lib/format';
+	import { withToast } from '$lib/toast.svelte';
+	import { fmtRangeLabel, todayStr } from '$lib/format';
 	import { getRememberedPhone } from '$lib/phonebook';
 	import type { Friend, Poll } from '$lib/types';
 
@@ -42,21 +43,33 @@
 		phoneChips = phoneChips.filter((_, i) => i !== idx);
 	}
 
+	let creating = $state(false);
+	const today = todayStr();
+	const rangeBackwards = $derived(!!start && !!end && end < start);
 	const sendDisabled = $derived(
-		!(title && start && end && (friends.some((f) => friendSel[f.id]) || phoneChips.length))
+		creating ||
+			rangeBackwards ||
+			!(title && start && end && (friends.some((f) => friendSel[f.id]) || phoneChips.length))
 	);
 
 	async function goToSend() {
 		if (sendDisabled) return;
-		createdPoll = await api.createPoll({
-			title,
-			note,
-			start,
-			end,
-			friendIds: Object.keys(friendSel).filter((id) => friendSel[id]),
-			phoneInvitees: phoneChips
-		});
-		step = 'sent';
+		creating = true;
+		const ok = await withToast(
+			async () => {
+				createdPoll = await api.createPoll({
+					title,
+					note,
+					start,
+					end,
+					friendIds: Object.keys(friendSel).filter((id) => friendSel[id]),
+					phoneInvitees: phoneChips
+				});
+			},
+			{ error: "Couldn't create the poll — try again." }
+		);
+		creating = false;
+		if (ok) step = 'sent';
 	}
 	function backToForm() {
 		step = 'form';
@@ -75,10 +88,16 @@
 						// submitted without persisting it); for friend invitees,
 						// fall back to whatever this device has cached locally.
 						phone: inv.phone ?? (inv.userId ? getRememberedPhone(inv.userId) : undefined) ?? '',
-						token: inv.accessToken!
+						token: inv.accessToken!,
+						// App friends already see the poll in their Polls tab — the
+						// text is just an optional nudge. Phone invitees only find
+						// out via the link, so for them it's required.
+						isApp: inv.userId != null
 					}))
 			: []
 	);
+	const appTargets = $derived(sendTargets.filter((t) => t.isApp));
+	const phoneTargets = $derived(sendTargets.filter((t) => !t.isApp));
 
 	function inviteMsgFor(target: { token: string }) {
 		const origin = typeof window !== 'undefined' ? window.location.origin : '';
@@ -109,6 +128,7 @@
 				<input
 					type="date"
 					bind:value={start}
+					min={today}
 					class="rounded-[10px] border px-2.5 py-2.5 text-[13px] text-ink"
 					style="border-color:var(--color-line)"
 				/>
@@ -118,11 +138,17 @@
 				<input
 					type="date"
 					bind:value={end}
+					min={start || today}
 					class="rounded-[10px] border px-2.5 py-2.5 text-[13px] text-ink"
 					style="border-color:var(--color-line)"
 				/>
 			</label>
 		</div>
+		{#if rangeBackwards}
+			<p class="m-0 -mt-2 text-[11.5px] leading-relaxed" style="color:var(--color-danger)">
+				The end date can't be before the start date.
+			</p>
+		{/if}
 		<label class="flex flex-col gap-1.5">
 			<span class="text-xs font-semibold text-subtext">Note (optional)</span>
 			<input
@@ -207,7 +233,7 @@
 				? 'var(--color-faint)'
 				: 'var(--color-accent)'}; cursor:{sendDisabled ? 'default' : 'pointer'}"
 		>
-			Continue to invites
+			{creating ? 'Creating…' : 'Continue to invites'}
 		</button>
 	</div>
 {:else}
@@ -221,22 +247,53 @@
 		<h1 class="m-0 font-display text-[19px] font-semibold text-ink">Send invites</h1>
 	</div>
 	<p class="m-0 px-[22px] pb-4 text-[12.5px] text-subtext-2">
-		Loose Days doesn't message anyone directly — send each person a link over SMS or WhatsApp.
+		Your poll is live. Loose Days doesn't message anyone directly — nudge people with a link over
+		SMS or WhatsApp.
 	</p>
-	<div class="flex flex-col gap-2.5 px-[18px]">
-		{#each sendTargets as t (t.token)}
-			<div
-				class="flex items-center justify-between rounded-[14px] border px-3.5 py-3"
-				style="border-color:var(--color-line)"
-			>
-				<div>
-					<div class="text-[13.5px] font-semibold text-ink">{t.name}</div>
-					<div class="text-[11.5px] text-muted">{t.phone || 'No number on this device'}</div>
+
+	{#if phoneTargets.length}
+		<div class="px-[22px] pb-1.5 text-[11.5px] font-semibold text-subtext">
+			Not on Loose Days — send them the link
+		</div>
+		<div class="flex flex-col gap-2.5 px-[18px]">
+			{#each phoneTargets as t (t.token)}
+				<div
+					class="flex items-center justify-between rounded-[14px] border px-3.5 py-3"
+					style="border-color:var(--color-line)"
+				>
+					<div>
+						<div class="text-[13.5px] font-semibold text-ink">{t.name}</div>
+						<div class="text-[11.5px] text-muted">{t.phone || 'No number on this device'}</div>
+					</div>
+					<InviteLinks phone={t.phone} message={inviteMsgFor(t)} />
 				</div>
-				<InviteLinks phone={t.phone} message={inviteMsgFor(t)} />
-			</div>
-		{/each}
-	</div>
+			{/each}
+		</div>
+	{/if}
+
+	{#if appTargets.length}
+		<div class="px-[22px] pt-4 pb-1.5 text-[11.5px] font-semibold text-subtext">
+			Already on Loose Days — they'll see it in their Polls tab
+		</div>
+		<div class="flex flex-col gap-2.5 px-[18px]">
+			{#each appTargets as t (t.token)}
+				<div
+					class="flex items-center justify-between rounded-[14px] border px-3.5 py-3"
+					style="border-color:var(--color-line)"
+				>
+					<div>
+						<div class="text-[13.5px] font-semibold text-ink">{t.name}</div>
+						<div class="text-[11.5px] text-muted">
+							{t.phone ? 'Optional nudge' : "They'll see it in the app"}
+						</div>
+					</div>
+					{#if t.phone}
+						<InviteLinks phone={t.phone} message={inviteMsgFor(t)} />
+					{/if}
+				</div>
+			{/each}
+		</div>
+	{/if}
 	<div class="px-[18px] pt-5">
 		<button
 			onclick={finish}

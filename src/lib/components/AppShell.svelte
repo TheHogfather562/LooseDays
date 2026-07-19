@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import Toast from './Toast.svelte';
 
 	let { children, tabbar }: { children: Snippet; tabbar?: Snippet } = $props();
 </script>
@@ -14,5 +15,6 @@
 		{#if tabbar}
 			{@render tabbar()}
 		{/if}
+		<Toast />
 	</div>
 </div>

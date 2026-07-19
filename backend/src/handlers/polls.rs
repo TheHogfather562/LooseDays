@@ -61,6 +61,39 @@ pub async fn respond(
 	Ok(Json(json!({ "ok": true })))
 }
 
+#[derive(Deserialize)]
+pub struct FinalizeBody {
+	start: chrono::NaiveDate,
+	end: chrono::NaiveDate,
+}
+
+pub async fn finalize(
+	State(state): State<AppState>,
+	RequireUser(user): RequireUser,
+	Path(poll_id): Path<Uuid>,
+	Json(body): Json<FinalizeBody>,
+) -> AppResult<Json<PollDto>> {
+	let ok = polls::finalize_poll(&state.pool, poll_id, user.id, body.start, body.end).await?;
+	if !ok {
+		return Err(AppError::Forbidden("Only the poll's creator can finalize it".into()));
+	}
+	let poll = polls::get_poll_for_user(&state.pool, poll_id, user.id).await?;
+	poll.map(Json).ok_or_else(|| AppError::NotFound("Poll not found".into()))
+}
+
+pub async fn reopen(
+	State(state): State<AppState>,
+	RequireUser(user): RequireUser,
+	Path(poll_id): Path<Uuid>,
+) -> AppResult<Json<PollDto>> {
+	let ok = polls::reopen_poll(&state.pool, poll_id, user.id).await?;
+	if !ok {
+		return Err(AppError::Forbidden("Only the poll's creator can reopen it".into()));
+	}
+	let poll = polls::get_poll_for_user(&state.pool, poll_id, user.id).await?;
+	poll.map(Json).ok_or_else(|| AppError::NotFound("Poll not found".into()))
+}
+
 pub async fn public_get(
 	State(state): State<AppState>,
 	Path(token): Path<String>,

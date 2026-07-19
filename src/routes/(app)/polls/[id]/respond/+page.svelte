@@ -6,21 +6,46 @@
 	import StatusPillGroup from '$lib/components/StatusPillGroup.svelte';
 	import { api } from '$lib/api';
 	import { db } from '$lib/db.svelte';
+	import { myInvitee } from '$lib/polls';
+	import { withToast } from '$lib/toast.svelte';
 	import { dateRangeArr, fmtRangeLabel, fmtWeekdayShort } from '$lib/format';
 	import type { Availability } from '$lib/types';
 
 	const pollId = $derived(page.params.id!);
 	const poll = $derived(db.polls.find((p) => p.id === pollId));
 
-	let draft = $state<Record<string, Availability>>({});
-
 	const days = $derived(poll ? dateRangeArr(poll.rangeStart, poll.rangeEnd) : []);
-	const submitDisabled = $derived(days.length === 0 || days.some((d) => !draft[d]));
+
+	// Prefill from an existing response so this screen doubles as "edit my
+	// answer" — the backend re-response is a full replace, so what's shown here
+	// is exactly what gets saved.
+	let draft = $state<Record<string, Availability>>({});
+	let seeded = $state(false);
+	$effect(() => {
+		if (seeded || !poll) return;
+		const mine = myInvitee(poll);
+		if (mine && poll.responses[mine.id]) draft = { ...poll.responses[mine.id] };
+		seeded = true;
+	});
+
+	let submitting = $state(false);
+	const submitDisabled = $derived(days.length === 0 || days.some((d) => !draft[d]) || submitting);
+
+	function markAll(status: Availability) {
+		const next: Record<string, Availability> = {};
+		for (const d of days) next[d] = status;
+		draft = next;
+	}
 
 	async function submit() {
 		if (submitDisabled || !poll) return;
-		await api.submitPollResponse(poll.id, draft);
-		await goto(resolve('/(app)/polls/[id]/results', { id: poll.id }));
+		submitting = true;
+		const ok = await withToast(() => api.submitPollResponse(poll.id, draft), {
+			success: 'Response saved.',
+			error: "Couldn't submit your response — try again."
+		});
+		submitting = false;
+		if (ok) await goto(resolve('/(app)/polls/[id]/results', { id: poll.id }));
 	}
 </script>
 
@@ -29,9 +54,25 @@
 	href={resolve('/polls')}
 	subtitle={poll ? fmtRangeLabel(poll.rangeStart, poll.rangeEnd) : ''}
 />
-<p class="m-0 px-[22px] pt-3 pb-3.5 text-[12.5px] text-subtext-2">
-	Mark your availability for each day
-</p>
+<div class="flex items-center justify-between gap-2 px-[22px] pt-3 pb-3.5">
+	<p class="m-0 text-[12.5px] text-subtext-2">Mark your availability for each day</p>
+	<div class="flex gap-1.5">
+		<button
+			onclick={() => markAll('free')}
+			class="cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-semibold text-subtext"
+			style="border-color:var(--color-line)"
+		>
+			All free
+		</button>
+		<button
+			onclick={() => markAll('busy')}
+			class="cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-semibold text-subtext"
+			style="border-color:var(--color-line)"
+		>
+			All busy
+		</button>
+	</div>
+</div>
 <div class="flex flex-col gap-2.5 px-[18px]">
 	{#each days as d (d)}
 		<div
@@ -52,6 +93,6 @@
 			? 'var(--color-faint)'
 			: 'var(--color-accent)'}; cursor:{submitDisabled ? 'default' : 'pointer'}"
 	>
-		Submit response
+		{submitting ? 'Submitting…' : 'Submit response'}
 	</button>
 </div>

@@ -2,9 +2,16 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { db } from '$lib/db.svelte';
-	import { fmtRangeLabel } from '$lib/format';
+	import { fmtRangeLabel, fmtShort } from '$lib/format';
 	import { myInvitee } from '$lib/polls';
 	import type { Poll } from '$lib/types';
+
+	function finalizedLabel(poll: Poll): string {
+		if (!poll.finalizedStart || !poll.finalizedEnd) return '';
+		return poll.finalizedStart === poll.finalizedEnd
+			? fmtShort(poll.finalizedStart)
+			: `${fmtShort(poll.finalizedStart)} – ${fmtShort(poll.finalizedEnd)}`;
+	}
 
 	function open(poll: Poll) {
 		const mine = myInvitee(poll);
@@ -28,6 +35,24 @@
 </p>
 
 <div class="flex flex-col gap-3 px-[18px]">
+	{#if db.polls.length === 0}
+		<div
+			class="mt-2 flex flex-col items-center gap-3 rounded-2xl border border-dashed px-6 py-9 text-center"
+			style="border-color:var(--color-line)"
+		>
+			<p class="m-0 text-[13px] font-semibold text-ink">No polls yet</p>
+			<p class="m-0 text-[12px] leading-relaxed text-subtext-2">
+				Start a poll to find a date that works for everyone — invite friends or anyone by phone
+				number.
+			</p>
+			<a
+				href={resolve('/polls/new')}
+				class="rounded-[10px] border-none bg-accent px-4 py-2.5 text-[12.5px] font-semibold text-white no-underline"
+			>
+				+ Create your first poll
+			</a>
+		</div>
+	{/if}
 	{#each db.polls as poll (poll.id)}
 		{@const mine = myInvitee(poll)}
 		{@const pendingCount = poll.invitees.filter((i) => i.status === 'invited').length}
@@ -50,6 +75,11 @@
 			</div>
 			<span class="text-[12.5px] text-subtext">{fmtRangeLabel(poll.rangeStart, poll.rangeEnd)}</span
 			>
+			{#if poll.finalizedAt}
+				<span class="text-[12px] font-semibold" style="color:var(--color-accent)">
+					✓ Locked in · {finalizedLabel(poll)}
+				</span>
+			{/if}
 			<span class="text-xs text-muted">
 				{poll.invitees.length} invited · {poll.invitees.length - pendingCount} responded
 			</span>

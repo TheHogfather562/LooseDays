@@ -189,6 +189,10 @@ export const api = {
 			end: scope === 'range' ? end : null
 		});
 	},
+	async cancelOutgoingRequest(friendId: string) {
+		delete db.outgoingPending[friendId];
+		await del(`/api/access/outgoing/${friendId}`);
+	},
 	async getIncomingRequests() {
 		db.incomingRequests = await req('/api/access/incoming');
 		return db.incomingRequests;
@@ -240,6 +244,14 @@ export const api = {
 		await post(`/api/polls/${pollId}/respond`, { responses });
 		const poll = await req<Poll>(`/api/polls/${pollId}`);
 		db.polls = db.polls.map((p) => (p.id === pollId ? poll : p));
+	},
+	async finalizePoll(pollId: string, start: string, end: string) {
+		const poll = await post(`/api/polls/${pollId}/finalize`, { start, end });
+		db.polls = db.polls.map((p) => (p.id === pollId ? (poll as Poll) : p));
+	},
+	async reopenPoll(pollId: string) {
+		const poll = await post(`/api/polls/${pollId}/reopen`);
+		db.polls = db.polls.map((p) => (p.id === pollId ? (poll as Poll) : p));
 	},
 
 	// ---------- Public (non-user) poll responses via token link ----------

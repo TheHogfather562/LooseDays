@@ -3,8 +3,10 @@
 	import { resolve } from '$app/paths';
 	import BackHeader from '$lib/components/BackHeader.svelte';
 	import { api } from '$lib/api';
+	import { withToast } from '$lib/toast.svelte';
 	import { smsLink, whatsappLink } from '$lib/links';
 	import { getRememberedPhone } from '$lib/phonebook';
+	import { todayStr } from '$lib/format';
 	import type { AccessScope, Friend } from '$lib/types';
 
 	let friends = $state<Friend[]>([]);
@@ -23,13 +25,24 @@
 	let start = $state('');
 	let end = $state('');
 	let sent = $state(false);
+	let sending = $state(false);
 
-	const sendDisabled = $derived(scope === 'range' ? !(start && end) : false);
+	const today = todayStr();
+	const rangeBackwards = $derived(scope === 'range' && !!start && !!end && end < start);
+	const sendDisabled = $derived(
+		sending || (scope === 'range' ? !(start && end) || rangeBackwards : false)
+	);
 
 	async function send() {
 		if (sendDisabled || !friendId) return;
-		await api.requestCalendarAccess(friendId, scope, start, end);
-		sent = true;
+		sending = true;
+		const ok = await withToast(() => api.requestCalendarAccess(friendId, scope, start, end), {
+			error: "Couldn't send the request — try again."
+		});
+		sending = false;
+		if (ok) sent = true;
+		// api.* flips db.outgoingPending optimistically; undo it if the send failed.
+		else await api.getOutgoingPending().catch(() => {});
 	}
 
 	const reqMsg = `Can you approve my request to see your Loose Days calendar? ${
@@ -117,6 +130,7 @@
 					<input
 						type="date"
 						bind:value={start}
+						min={today}
 						class="rounded-[10px] border px-2.5 py-2.5 text-[13px] text-ink"
 						style="border-color:var(--color-line)"
 					/>
@@ -126,11 +140,17 @@
 					<input
 						type="date"
 						bind:value={end}
+						min={start || today}
 						class="rounded-[10px] border px-2.5 py-2.5 text-[13px] text-ink"
 						style="border-color:var(--color-line)"
 					/>
 				</label>
 			</div>
+			{#if rangeBackwards}
+				<p class="m-0 text-[11.5px] leading-relaxed" style="color:var(--color-danger)">
+					The end date can't be before the start date.
+				</p>
+			{/if}
 		{/if}
 		<button
 			onclick={send}
@@ -140,7 +160,7 @@
 				? 'var(--color-faint)'
 				: 'var(--color-accent)'}; cursor:{sendDisabled ? 'default' : 'pointer'}"
 		>
-			Send request
+			{sending ? 'Sending…' : 'Send request'}
 		</button>
 	</div>
 {/if}

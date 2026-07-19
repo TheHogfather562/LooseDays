@@ -3,6 +3,7 @@
 	import AppShell from '$lib/components/AppShell.svelte';
 	import StatusPillGroup from '$lib/components/StatusPillGroup.svelte';
 	import { api } from '$lib/api';
+	import { withToast } from '$lib/toast.svelte';
 	import { dateRangeArr, fmtRangeLabel, fmtWeekdayShort } from '$lib/format';
 	import type { Availability, Poll } from '$lib/types';
 
@@ -10,6 +11,7 @@
 	let poll = $state<Poll | null>(null);
 	let notFound = $state(false);
 	let submitted = $state(false);
+	let submitting = $state(false);
 	let draft = $state<Record<string, Availability>>({});
 
 	$effect(() => {
@@ -20,12 +22,22 @@
 	});
 
 	const days = $derived(poll ? dateRangeArr(poll.rangeStart, poll.rangeEnd) : []);
-	const submitDisabled = $derived(days.length === 0 || days.some((d) => !draft[d]));
+	const submitDisabled = $derived(days.length === 0 || days.some((d) => !draft[d]) || submitting);
+
+	function markAll(status: Availability) {
+		const next: Record<string, Availability> = {};
+		for (const d of days) next[d] = status;
+		draft = next;
+	}
 
 	async function submit() {
 		if (submitDisabled || !poll) return;
-		await api.submitPublicPollResponse(token, draft);
-		submitted = true;
+		submitting = true;
+		const ok = await withToast(() => api.submitPublicPollResponse(token, draft), {
+			error: "Couldn't submit your response — try again."
+		});
+		submitting = false;
+		if (ok) submitted = true;
 	}
 </script>
 
@@ -42,6 +54,17 @@
 			<p class="m-0 text-[13px] text-subtext">
 				Your availability for "{poll.title}" was sent.
 			</p>
+			<div
+				class="mt-6 flex flex-col items-center gap-2 rounded-2xl border px-6 py-6"
+				style="border-color:var(--color-line); background:var(--color-panel)"
+			>
+				<span class="h-2.5 w-2.5 rounded-full bg-accent"></span>
+				<p class="m-0 text-[13px] font-semibold text-ink">Want your own Loose Days?</p>
+				<p class="m-0 text-[12px] leading-relaxed text-subtext-2">
+					Keep a shared free/busy calendar with your friends and run polls like this one. Sign-up is
+					invite-only — ask a friend who's already on Loose Days to add you.
+				</p>
+			</div>
 		</div>
 	{:else}
 		<div class="px-[22px] pt-[26px] pb-1">
@@ -56,9 +79,25 @@
 				{fmtRangeLabel(poll.rangeStart, poll.rangeEnd)}
 			</p>
 		</div>
-		<p class="m-0 px-[22px] pt-3 pb-3.5 text-[12.5px] text-subtext-2">
-			Mark your availability for each day — no account needed.
-		</p>
+		<div class="flex items-center justify-between gap-2 px-[22px] pt-3 pb-3.5">
+			<p class="m-0 text-[12.5px] text-subtext-2">Mark your availability — no account needed</p>
+			<div class="flex gap-1.5">
+				<button
+					onclick={() => markAll('free')}
+					class="cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-semibold text-subtext"
+					style="border-color:var(--color-line)"
+				>
+					All free
+				</button>
+				<button
+					onclick={() => markAll('busy')}
+					class="cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-semibold text-subtext"
+					style="border-color:var(--color-line)"
+				>
+					All busy
+				</button>
+			</div>
+		</div>
 		<div class="flex flex-col gap-2.5 px-[18px]">
 			{#each days as d (d)}
 				<div
@@ -82,7 +121,7 @@
 					? 'var(--color-faint)'
 					: 'var(--color-accent)'}; cursor:{submitDisabled ? 'default' : 'pointer'}"
 			>
-				Submit response
+				{submitting ? 'Submitting…' : 'Submit response'}
 			</button>
 		</div>
 	{/if}
