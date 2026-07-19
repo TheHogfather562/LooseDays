@@ -84,6 +84,10 @@ async fn main() -> anyhow::Result<()> {
 		.route("/api/access/mine", get(handlers::access::mine))
 		.route("/api/access/outgoing", get(handlers::access::outgoing))
 		.route(
+			"/api/access/outgoing/:owner_id",
+			delete(handlers::access::cancel_outgoing),
+		)
+		.route(
 			"/api/access/standing",
 			get(handlers::access::standing),
 		)

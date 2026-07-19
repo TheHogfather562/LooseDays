@@ -189,6 +189,10 @@ export const api = {
 			end: scope === 'range' ? end : null
 		});
 	},
+	async cancelOutgoingRequest(friendId: string) {
+		delete db.outgoingPending[friendId];
+		await del(`/api/access/outgoing/${friendId}`);
+	},
 	async getIncomingRequests() {
 		db.incomingRequests = await req('/api/access/incoming');
 		return db.incomingRequests;

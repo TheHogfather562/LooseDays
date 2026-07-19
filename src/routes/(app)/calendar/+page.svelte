@@ -1,15 +1,18 @@
 <script lang="ts">
 	import { db } from '$lib/db.svelte';
 	import { api } from '$lib/api';
+	import { withToast } from '$lib/toast.svelte';
 	import CalendarMonthGrid from '$lib/components/CalendarMonthGrid.svelte';
 	import StatusPillGroup from '$lib/components/StatusPillGroup.svelte';
 	import StatusDot from '$lib/components/StatusDot.svelte';
 	import { dateStr, fmtWeekdayShort, mondayFirstWeekday, todayStr } from '$lib/format';
+	import { resolve } from '$app/paths';
 	import type { Availability } from '$lib/types';
 
 	let monthOffset = $state(0);
 	let selectedDate = $state<string | null>(null);
 	let noteDraft = $state('');
+	let savingNote = $state(false);
 
 	const grid = $derived.by(() => {
 		const now = new Date();
@@ -56,13 +59,21 @@
 
 	async function setStatus(status: Availability) {
 		if (!selectedDate) return;
-		await api.setCalendarDayStatus(selectedDate, status);
+		// api.* updates db.calStatuses optimistically before the request settles,
+		// so on failure resync from the server to undo the stale local change.
+		const ok = await withToast(() => api.setCalendarDayStatus(selectedDate!, status), {
+			error: "Couldn't save that — try again."
+		});
+		if (!ok) await api.getCalendarDays().catch(() => {});
 	}
 
 	async function clearDay() {
 		if (!selectedDate) return;
-		await api.clearCalendarDay(selectedDate);
-		noteDraft = '';
+		const ok = await withToast(() => api.clearCalendarDay(selectedDate!), {
+			error: "Couldn't clear that day — try again."
+		});
+		if (ok) noteDraft = '';
+		else await api.getCalendarDays().catch(() => {});
 	}
 
 	function closePanel() {
@@ -71,8 +82,14 @@
 	}
 
 	async function saveNote() {
-		if (!selectedDate) return;
-		await api.setCalendarDayNote(selectedDate, noteDraft);
+		if (!selectedDate || savingNote) return;
+		savingNote = true;
+		const ok = await withToast(() => api.setCalendarDayNote(selectedDate!, noteDraft), {
+			success: 'Note saved.',
+			error: "Couldn't save the note — try again."
+		});
+		if (!ok) await api.getCalendarDays().catch(() => {});
+		savingNote = false;
 	}
 
 	function prevMonth() {
@@ -86,7 +103,11 @@
 </script>
 
 <div class="flex items-center justify-between px-[22px] pt-[26px] pb-1">
-	<span class="inline-block h-[30px] w-[30px] rounded-full bg-avatar"></span>
+	<a
+		href={resolve('/account')}
+		aria-label="Account settings"
+		class="inline-block h-[30px] w-[30px] rounded-full bg-avatar"
+	></a>
 	<span class="text-xs text-muted">My Calendar</span>
 </div>
 <div class="flex items-baseline justify-between px-[22px] pt-2.5 pb-1">
@@ -159,9 +180,11 @@
 			style="border-color:var(--color-line)"></textarea>
 		<button
 			onclick={saveNote}
-			class="mt-2.5 w-full cursor-pointer rounded-[10px] border-none bg-accent py-2.5 text-[13.5px] font-semibold text-white"
+			disabled={savingNote}
+			class="mt-2.5 w-full rounded-[10px] border-none bg-accent py-2.5 text-[13.5px] font-semibold text-white"
+			style="cursor:{savingNote ? 'default' : 'pointer'}"
 		>
-			Save note
+			{savingNote ? 'Saving…' : 'Save note'}
 		</button>
 	</div>
 {/if}

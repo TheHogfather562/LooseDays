@@ -5,10 +5,11 @@
 	import StatusDot from '$lib/components/StatusDot.svelte';
 	import { db } from '$lib/db.svelte';
 	import { dateRangeArr, fmtRangeLabel, fmtShort } from '$lib/format';
-	import { computeBest } from '$lib/polls';
+	import { computeBest, myInvitee } from '$lib/polls';
 
 	const pollId = $derived(page.params.id!);
 	const poll = $derived(db.polls.find((p) => p.id === pollId));
+	const mine = $derived(poll ? myInvitee(poll) : undefined);
 
 	const days = $derived(poll ? dateRangeArr(poll.rangeStart, poll.rangeEnd) : []);
 	const best = $derived(poll ? computeBest(days, poll.invitees, poll.responses) : null);
@@ -35,6 +36,15 @@
 		if (status === 'free') return 'var(--color-free)';
 		return 'var(--color-pending)';
 	}
+
+	// A letter inside each cell so availability isn't conveyed by colour alone —
+	// free/maybe/busy are otherwise only distinguishable by hue.
+	function cellLetter(status: string | undefined) {
+		if (status === 'busy') return 'B';
+		if (status === 'maybe') return 'M';
+		if (status === 'free') return 'F';
+		return '';
+	}
 </script>
 
 <BackHeader
@@ -42,6 +52,17 @@
 	href={resolve('/polls')}
 	subtitle={poll ? fmtRangeLabel(poll.rangeStart, poll.rangeEnd) : ''}
 />
+
+{#if poll && mine}
+	<div class="flex justify-end px-[22px] pt-1">
+		<a
+			href={resolve('/(app)/polls/[id]/respond', { id: poll.id })}
+			class="text-[12px] font-semibold text-accent"
+		>
+			{mine.status === 'responded' ? 'Edit my response' : 'Add my response'}
+		</a>
+	</div>
+{/if}
 
 {#if best}
 	<div
@@ -80,11 +101,14 @@
 				{#each poll.invitees as inv (inv.id)}
 					{@const st = poll.responses[inv.id]?.[d]}
 					<div
-						class="mx-auto box-border h-8 w-8 rounded-lg"
-						style="background:{cellColor(st)}; border:{inBest
-							? '2px solid var(--color-accent)'
-							: 'none'}"
-					></div>
+						class="mx-auto box-border flex h-8 w-8 items-center justify-center rounded-lg text-[10px] font-bold"
+						style="background:{cellColor(st)}; color:{st
+							? 'rgba(255,255,255,0.9)'
+							: 'var(--color-muted)'}; border:{inBest ? '2px solid var(--color-accent)' : 'none'}"
+						title={st ?? 'pending'}
+					>
+						{cellLetter(st)}
+					</div>
 				{/each}
 			{/each}
 		</div>
@@ -93,13 +117,13 @@
 
 <div class="flex gap-3.5 px-[22px] pb-5 text-[11px] text-subtext">
 	<div class="flex items-center gap-1.5">
-		<StatusDot status="free" size={12} /><span>free</span>
+		<StatusDot status="free" size={12} /><span>F · free</span>
 	</div>
 	<div class="flex items-center gap-1.5">
-		<StatusDot status="maybe" size={12} /><span>maybe</span>
+		<StatusDot status="maybe" size={12} /><span>M · maybe</span>
 	</div>
 	<div class="flex items-center gap-1.5">
-		<StatusDot status="busy" size={12} /><span>busy</span>
+		<StatusDot status="busy" size={12} /><span>B · busy</span>
 	</div>
 	<div class="flex items-center gap-1.5">
 		<span class="inline-block h-3 w-3 rounded-full" style="background:var(--color-pending)"></span>

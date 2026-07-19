@@ -4,6 +4,7 @@
 	import BackHeader from '$lib/components/BackHeader.svelte';
 	import { api } from '$lib/api';
 	import { db } from '$lib/db.svelte';
+	import { withToast } from '$lib/toast.svelte';
 	import { passkeysSupported, registerPasskey } from '$lib/webauthn';
 	import type { Passkey } from '$lib/types';
 
@@ -28,19 +29,29 @@
 		} catch (err) {
 			console.error('passkey registration failed', err);
 			const detail = err instanceof Error ? err.message : '';
-			addError = detail ? `Couldn't add that passkey — ${detail}` : "Couldn't add that passkey — try again.";
+			addError = detail
+				? `Couldn't add that passkey — ${detail}`
+				: "Couldn't add that passkey — try again.";
 		} finally {
 			addPending = false;
 		}
 	}
 
 	async function removePasskey(id: string) {
+		const prev = passkeys;
 		passkeys = passkeys.filter((p) => p.id !== id);
-		await api.removePasskey(id);
+		const ok = await withToast(() => api.removePasskey(id), {
+			error: "Couldn't remove that passkey — try again."
+		});
+		// Restore the row if the delete didn't go through.
+		if (!ok) passkeys = prev;
 	}
 
 	async function signOut() {
-		await api.logout();
+		const ok = await withToast(() => api.logout(), {
+			error: "Couldn't sign out — try again."
+		});
+		if (!ok) return;
 		db.session = { checked: true, signedIn: false, onboarded: false };
 		db.currentUser = null;
 		await goto(resolve('/signin'));

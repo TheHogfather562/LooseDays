@@ -3,26 +3,41 @@
 	import BackHeader from '$lib/components/BackHeader.svelte';
 	import { db } from '$lib/db.svelte';
 	import { api } from '$lib/api';
+	import { withToast } from '$lib/toast.svelte';
 	import { fmtRangeLabel } from '$lib/format';
 	import type { DetailLevel } from '$lib/types';
 
 	let approvingId = $state<string | null>(null);
-	let approvingLevel = $state<'full' | 'overlap'>('full');
+	// Default to the privacy-safe option — the whole point of the app is
+	// granular control, so revealing full status should be a deliberate choice.
+	let approvingLevel = $state<'full' | 'overlap'>('overlap');
+	let busyId = $state<string | null>(null);
 
 	function startApprove(id: string) {
 		approvingId = id;
-		approvingLevel = 'full';
+		approvingLevel = 'overlap';
 	}
 
 	async function confirmApprove() {
-		if (!approvingId) return;
+		if (!approvingId || busyId) return;
+		const id = approvingId;
 		const level: DetailLevel = approvingLevel === 'full' ? 'full' : 'overlap_only';
-		await api.approveAccessRequest(approvingId, level);
-		approvingId = null;
+		busyId = id;
+		const ok = await withToast(() => api.approveAccessRequest(id, level), {
+			success: 'Access approved.',
+			error: "Couldn't approve — try again."
+		});
+		busyId = null;
+		if (ok) approvingId = null;
 	}
 
 	async function deny(id: string) {
-		await api.denyAccessRequest(id);
+		if (busyId) return;
+		busyId = id;
+		await withToast(() => api.denyAccessRequest(id), {
+			error: "Couldn't deny — try again."
+		});
+		busyId = null;
 	}
 </script>
 
@@ -67,25 +82,32 @@
 					</div>
 					<button
 						onclick={confirmApprove}
-						class="cursor-pointer rounded-[10px] border-none bg-accent py-2.5 text-[13px] font-semibold text-white"
+						disabled={busyId === req.id}
+						class="rounded-[10px] border-none bg-accent py-2.5 text-[13px] font-semibold text-white"
+						style="cursor:{busyId === req.id ? 'default' : 'pointer'}"
 					>
-						Confirm approval
+						{busyId === req.id ? 'Approving…' : 'Confirm approval'}
 					</button>
 				</div>
 			{:else}
 				<div class="flex gap-2">
 					<button
 						onclick={() => startApprove(req.id)}
-						class="flex-1 cursor-pointer rounded-[10px] border-none bg-accent py-2.5 text-[12.5px] font-semibold text-white"
+						disabled={busyId === req.id}
+						class="flex-1 rounded-[10px] border-none bg-accent py-2.5 text-[12.5px] font-semibold text-white"
+						style="cursor:{busyId === req.id ? 'default' : 'pointer'}"
 					>
 						Approve
 					</button>
 					<button
 						onclick={() => deny(req.id)}
-						class="flex-1 cursor-pointer rounded-[10px] border bg-white py-2.5 text-[12.5px] font-semibold text-subtext"
-						style="border-color:var(--color-line)"
+						disabled={busyId === req.id}
+						class="flex-1 rounded-[10px] border bg-white py-2.5 text-[12.5px] font-semibold text-subtext"
+						style="border-color:var(--color-line); cursor:{busyId === req.id
+							? 'default'
+							: 'pointer'}"
 					>
-						Deny
+						{busyId === req.id ? 'Denying…' : 'Deny'}
 					</button>
 				</div>
 			{/if}

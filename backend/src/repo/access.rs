@@ -32,6 +32,21 @@ pub async fn request_access(
 	Ok(())
 }
 
+/// Withdraw the requester's own still-pending access request(s) against a
+/// given owner. Only pending rows are touched, so this can't retract an
+/// already-approved grant (use revoke for that, from the owner's side).
+pub async fn cancel_outgoing(pool: &PgPool, requester_id: Uuid, owner_id: Uuid) -> AppResult<()> {
+	sqlx::query(
+		"DELETE FROM calendar_access_requests
+		 WHERE requester_id = $1 AND owner_id = $2 AND status = 'pending'",
+	)
+	.bind(requester_id)
+	.bind(owner_id)
+	.execute(pool)
+	.await?;
+	Ok(())
+}
+
 pub async fn get_incoming_requests(pool: &PgPool, owner_id: Uuid) -> AppResult<Vec<IncomingRequestDto>> {
 	let rows = sqlx::query_as::<_, (Uuid, Uuid, String, String, Option<NaiveDate>, Option<NaiveDate>)>(
 		"SELECT r.id, r.requester_id, u.display_name, r.scope, r.range_start, r.range_end

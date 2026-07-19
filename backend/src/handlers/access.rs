@@ -58,6 +58,15 @@ pub async fn outgoing(
 	Ok(Json(access::get_outgoing_pending(&state.pool, user.id).await?))
 }
 
+pub async fn cancel_outgoing(
+	State(state): State<AppState>,
+	RequireUser(user): RequireUser,
+	Path(owner_id): Path<Uuid>,
+) -> AppResult<Json<serde_json::Value>> {
+	access::cancel_outgoing(&state.pool, user.id, owner_id).await?;
+	Ok(Json(json!({ "ok": true })))
+}
+
 pub async fn standing(
 	State(state): State<AppState>,
 	RequireUser(user): RequireUser,

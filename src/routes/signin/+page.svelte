@@ -4,10 +4,12 @@
 	import { page } from '$app/state';
 	import AppShell from '$lib/components/AppShell.svelte';
 	import { api } from '$lib/api';
+	import { withToast } from '$lib/toast.svelte';
 	import { passkeysSupported, signInWithPasskey } from '$lib/webauthn';
 
 	let email = $state('');
 	let sent = $state(false);
+	let sending = $state(false);
 	let passkeyError = $state('');
 	let passkeyPending = $state(false);
 
@@ -15,16 +17,23 @@
 	// person onboard themselves — redeeming it allowlists the email they enter.
 	const invite = $derived(page.url.searchParams.get('invite') ?? undefined);
 
-	const disabled = $derived(!email.includes('@'));
+	const disabled = $derived(!email.includes('@') || sending);
 
 	async function send() {
 		if (disabled) return;
-		await api.sendMagicLink(email, invite);
-		sent = true;
+		sending = true;
+		const ok = await withToast(() => api.sendMagicLink(email, invite), {
+			error: "Couldn't send the link — check the address and try again."
+		});
+		sending = false;
+		if (ok) sent = true;
 	}
 
 	async function resend() {
-		await api.sendMagicLink(email, invite);
+		await withToast(() => api.sendMagicLink(email, invite), {
+			success: 'Link sent again.',
+			error: "Couldn't resend the link — try again."
+		});
 	}
 
 	async function withPasskey() {
@@ -97,7 +106,7 @@
 					? 'var(--color-faint)'
 					: 'var(--color-accent)'}; cursor:{disabled ? 'default' : 'pointer'}"
 			>
-				Send magic link
+				{sending ? 'Sending…' : 'Send magic link'}
 			</button>
 
 			{#if passkeysSupported()}
