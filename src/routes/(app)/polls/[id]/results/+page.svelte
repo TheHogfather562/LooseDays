@@ -4,12 +4,15 @@
 	import BackHeader from '$lib/components/BackHeader.svelte';
 	import StatusDot from '$lib/components/StatusDot.svelte';
 	import { db } from '$lib/db.svelte';
+	import { api } from '$lib/api';
+	import { withToast } from '$lib/toast.svelte';
 	import { dateRangeArr, fmtRangeLabel, fmtShort } from '$lib/format';
 	import { computeBest, myInvitee } from '$lib/polls';
 
 	const pollId = $derived(page.params.id!);
 	const poll = $derived(db.polls.find((p) => p.id === pollId));
 	const mine = $derived(poll ? myInvitee(poll) : undefined);
+	const isCreator = $derived(!!poll && poll.creatorId === db.currentUser?.id);
 
 	const days = $derived(poll ? dateRangeArr(poll.rangeStart, poll.rangeEnd) : []);
 	const best = $derived(poll ? computeBest(days, poll.invitees, poll.responses) : null);
@@ -20,6 +23,56 @@
 				: `${fmtShort(days[best.startIdx])} – ${fmtShort(days[best.endIdx])}`
 			: ''
 	);
+
+	const finalized = $derived(!!poll?.finalizedAt);
+	const finalizedLabel = $derived(
+		poll?.finalizedStart && poll?.finalizedEnd
+			? poll.finalizedStart === poll.finalizedEnd
+				? fmtShort(poll.finalizedStart)
+				: `${fmtShort(poll.finalizedStart)} – ${fmtShort(poll.finalizedEnd)}`
+			: ''
+	);
+
+	// The creator's proposed lock-in range, prefilled once from the best overlap
+	// (or the poll's own range if nobody's free anywhere yet), then adjustable.
+	let finStart = $state('');
+	let finEnd = $state('');
+	let seededFin = $state(false);
+	let busy = $state(false);
+	$effect(() => {
+		if (seededFin || !poll) return;
+		if (best) {
+			finStart = days[best.startIdx];
+			finEnd = days[best.endIdx];
+		} else {
+			finStart = poll.rangeStart;
+			finEnd = poll.rangeEnd;
+		}
+		seededFin = true;
+	});
+	const finBackwards = $derived(!!finStart && !!finEnd && finEnd < finStart);
+
+	async function finalize() {
+		if (!poll || busy || !finStart || !finEnd || finBackwards) return;
+		const id = poll.id;
+		busy = true;
+		await withToast(() => api.finalizePoll(id, finStart, finEnd), {
+			success: 'Dates locked in.',
+			error: "Couldn't finalize — try again."
+		});
+		busy = false;
+	}
+
+	async function reopen() {
+		if (!poll || busy) return;
+		const id = poll.id;
+		busy = true;
+		await withToast(() => api.reopenPoll(id), {
+			success: 'Poll reopened.',
+			error: "Couldn't reopen — try again."
+		});
+		busy = false;
+	}
 
 	function initials(name: string) {
 		return name
@@ -53,8 +106,30 @@
 	subtitle={poll ? fmtRangeLabel(poll.rangeStart, poll.rangeEnd) : ''}
 />
 
+{#if poll && finalized}
+	<div
+		class="mx-[18px] mt-3 flex items-center justify-between gap-3 rounded-xl px-3.5 py-3"
+		style="background:var(--color-accent)"
+	>
+		<div class="flex flex-col gap-0.5">
+			<span class="text-[11.5px] font-semibold text-white">✓ Locked in</span>
+			<span class="text-[14px] font-semibold text-white">{finalizedLabel}</span>
+		</div>
+		{#if isCreator}
+			<button
+				onclick={reopen}
+				disabled={busy}
+				class="rounded-lg border border-white/40 bg-transparent px-3 py-1.5 text-[11.5px] font-semibold text-white"
+				style="cursor:{busy ? 'default' : 'pointer'}"
+			>
+				Reopen
+			</button>
+		{/if}
+	</div>
+{/if}
+
 {#if poll && mine}
-	<div class="flex justify-end px-[22px] pt-1">
+	<div class="flex justify-end px-[22px] pt-2">
 		<a
 			href={resolve('/(app)/polls/[id]/respond', { id: poll.id })}
 			class="text-[12px] font-semibold text-accent"
@@ -73,6 +148,60 @@
 			Best overlap
 		</span>
 		<span class="text-[13.5px] text-ink-soft">{bestRangeLabel}</span>
+	</div>
+{/if}
+
+{#if poll && isCreator && !finalized}
+	<div
+		class="mx-[18px] mt-3 flex flex-col gap-2.5 rounded-xl border p-3.5"
+		style="border-color:var(--color-line)"
+	>
+		<span class="text-[12px] font-semibold text-ink">Lock in a date</span>
+		<div class="flex gap-3">
+			<label class="flex flex-1 flex-col gap-1.5">
+				<span class="text-[11px] font-semibold text-subtext">From</span>
+				<input
+					type="date"
+					bind:value={finStart}
+					min={poll.rangeStart}
+					max={poll.rangeEnd}
+					class="rounded-[10px] border px-2.5 py-2 text-[13px] text-ink"
+					style="border-color:var(--color-line)"
+				/>
+			</label>
+			<label class="flex flex-1 flex-col gap-1.5">
+				<span class="text-[11px] font-semibold text-subtext">To</span>
+				<input
+					type="date"
+					bind:value={finEnd}
+					min={finStart || poll.rangeStart}
+					max={poll.rangeEnd}
+					class="rounded-[10px] border px-2.5 py-2 text-[13px] text-ink"
+					style="border-color:var(--color-line)"
+				/>
+			</label>
+		</div>
+		{#if finBackwards}
+			<p class="m-0 text-[11px] leading-relaxed" style="color:var(--color-danger)">
+				The end date can't be before the start date.
+			</p>
+		{/if}
+		<button
+			onclick={finalize}
+			disabled={busy || finBackwards || !finStart || !finEnd}
+			class="rounded-[10px] border-none py-2.5 text-[13px] font-semibold text-white"
+			style="background:{busy || finBackwards || !finStart || !finEnd
+				? 'var(--color-faint)'
+				: 'var(--color-accent)'}; cursor:{busy || finBackwards || !finStart || !finEnd
+				? 'default'
+				: 'pointer'}"
+		>
+			{busy ? 'Locking in…' : 'Lock in these dates'}
+		</button>
+		<p class="m-0 text-[11px] leading-relaxed text-muted-2">
+			Prefilled with the best overlap. Everyone sees the locked-in date — you can change or reopen
+			it anytime.
+		</p>
 	</div>
 {/if}
 

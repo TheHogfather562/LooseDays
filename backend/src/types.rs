@@ -143,6 +143,12 @@ pub struct PollDto {
 	pub creator_id: Uuid,
 	pub range_start: NaiveDate,
 	pub range_end: NaiveDate,
+	/// The date/range the group settled on, once the creator finalizes. All
+	/// three are null until then; `finalized_at` doubles as the "is finalized"
+	/// flag. Soft — responses can still change and it can be reopened.
+	pub finalized_start: Option<NaiveDate>,
+	pub finalized_end: Option<NaiveDate>,
+	pub finalized_at: Option<chrono::DateTime<chrono::Utc>>,
 	pub invitees: Vec<PollInviteeDto>,
 	pub responses: HashMap<Uuid, HashMap<NaiveDate, Availability>>,
 }

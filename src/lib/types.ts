@@ -89,6 +89,11 @@ export interface Poll {
 	creatorId: string;
 	rangeStart: string;
 	rangeEnd: string;
+	/** Set once the creator finalizes; `finalizedAt` doubles as the "is
+	 * finalized" flag. Soft — responses can still change and it can be reopened. */
+	finalizedStart?: string | null;
+	finalizedEnd?: string | null;
+	finalizedAt?: string | null;
 	invitees: PollInvitee[];
 	responses: PollResponses;
 }

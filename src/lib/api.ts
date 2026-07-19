@@ -245,6 +245,14 @@ export const api = {
 		const poll = await req<Poll>(`/api/polls/${pollId}`);
 		db.polls = db.polls.map((p) => (p.id === pollId ? poll : p));
 	},
+	async finalizePoll(pollId: string, start: string, end: string) {
+		const poll = await post(`/api/polls/${pollId}/finalize`, { start, end });
+		db.polls = db.polls.map((p) => (p.id === pollId ? (poll as Poll) : p));
+	},
+	async reopenPoll(pollId: string) {
+		const poll = await post(`/api/polls/${pollId}/reopen`);
+		db.polls = db.polls.map((p) => (p.id === pollId ? (poll as Poll) : p));
+	},
 
 	// ---------- Public (non-user) poll responses via token link ----------
 	async getPublicPoll(token: string) {

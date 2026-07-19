@@ -17,7 +17,15 @@ struct PollRow {
 	note: String,
 	range_start: NaiveDate,
 	range_end: NaiveDate,
+	finalized_start: Option<NaiveDate>,
+	finalized_end: Option<NaiveDate>,
+	finalized_at: Option<chrono::DateTime<chrono::Utc>>,
 }
+
+// Every read path selects the same poll columns; keep the list in one place so
+// PollRow's shape and the queries can't drift.
+const POLL_COLS: &str =
+	"id, creator_id, title, note, range_start, range_end, finalized_start, finalized_end, finalized_at";
 
 #[derive(sqlx::FromRow)]
 struct InviteeRow {
@@ -94,6 +102,9 @@ async fn build_poll(
 		creator_id: poll.creator_id,
 		range_start: poll.range_start,
 		range_end: poll.range_end,
+		finalized_start: poll.finalized_start,
+		finalized_end: poll.finalized_end,
+		finalized_at: poll.finalized_at,
 		invitees: dto_invitees,
 		responses,
 	})
@@ -173,7 +184,7 @@ pub async fn create_poll(
 	}
 
 	let poll_row = sqlx::query_as::<_, PollRow>(
-		"SELECT id, creator_id, title, note, range_start, range_end FROM polls WHERE id = $1",
+		&format!("SELECT {POLL_COLS} FROM polls WHERE id = $1"),
 	)
 	.bind(poll_id)
 	.fetch_one(pool)
@@ -203,10 +214,12 @@ pub async fn create_poll(
 
 pub async fn list_polls_for_user(pool: &PgPool, user_id: Uuid) -> AppResult<Vec<PollDto>> {
 	let rows = sqlx::query_as::<_, PollRow>(
-		"SELECT id, creator_id, title, note, range_start, range_end
-		 FROM polls
-		 WHERE creator_id = $1 OR id IN (SELECT poll_id FROM poll_invitees WHERE user_id = $1)
-		 ORDER BY created_at DESC",
+		&format!(
+			"SELECT {POLL_COLS}
+			 FROM polls
+			 WHERE creator_id = $1 OR id IN (SELECT poll_id FROM poll_invitees WHERE user_id = $1)
+			 ORDER BY created_at DESC"
+		),
 	)
 	.bind(user_id)
 	.fetch_all(pool)
@@ -228,7 +241,7 @@ pub async fn list_polls_for_user(pool: &PgPool, user_id: Uuid) -> AppResult<Vec<
 
 pub async fn get_poll_for_user(pool: &PgPool, poll_id: Uuid, user_id: Uuid) -> AppResult<Option<PollDto>> {
 	let Some(row) = sqlx::query_as::<_, PollRow>(
-		"SELECT id, creator_id, title, note, range_start, range_end FROM polls WHERE id = $1",
+		&format!("SELECT {POLL_COLS} FROM polls WHERE id = $1"),
 	)
 	.bind(poll_id)
 	.fetch_optional(pool)
@@ -249,6 +262,46 @@ pub async fn get_poll_for_user(pool: &PgPool, poll_id: Uuid, user_id: Uuid) -> A
 		return Ok(None);
 	}
 	Ok(Some(build_poll(pool, row, mine, false).await?))
+}
+
+/// Record the range the group settled on. Creator-only; the `creator_id`
+/// predicate means a non-creator (or unknown poll) touches no rows and gets
+/// `false` back, which the handler turns into a 403/404. A single chosen day
+/// is passed as start == end.
+pub async fn finalize_poll(
+	pool: &PgPool,
+	poll_id: Uuid,
+	creator_id: Uuid,
+	start: NaiveDate,
+	end: NaiveDate,
+) -> AppResult<bool> {
+	let (start, end) = if end < start { (end, start) } else { (start, end) };
+	let affected = sqlx::query(
+		"UPDATE polls
+		 SET finalized_start = $1, finalized_end = $2, finalized_at = now()
+		 WHERE id = $3 AND creator_id = $4",
+	)
+	.bind(start)
+	.bind(end)
+	.bind(poll_id)
+	.bind(creator_id)
+	.execute(pool)
+	.await?;
+	Ok(affected.rows_affected() > 0)
+}
+
+/// Undo a finalize, back to an open poll. Creator-only, same as finalize.
+pub async fn reopen_poll(pool: &PgPool, poll_id: Uuid, creator_id: Uuid) -> AppResult<bool> {
+	let affected = sqlx::query(
+		"UPDATE polls
+		 SET finalized_start = NULL, finalized_end = NULL, finalized_at = NULL
+		 WHERE id = $1 AND creator_id = $2",
+	)
+	.bind(poll_id)
+	.bind(creator_id)
+	.execute(pool)
+	.await?;
+	Ok(affected.rows_affected() > 0)
 }
 
 async fn save_responses(
@@ -313,7 +366,7 @@ pub async fn get_poll_by_token(pool: &PgPool, token: &str) -> AppResult<Option<P
 		return Ok(None);
 	};
 	let Some(row) = sqlx::query_as::<_, PollRow>(
-		"SELECT id, creator_id, title, note, range_start, range_end FROM polls WHERE id = $1",
+		&format!("SELECT {POLL_COLS} FROM polls WHERE id = $1"),
 	)
 	.bind(poll_id)
 	.fetch_optional(pool)

@@ -2,9 +2,16 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { db } from '$lib/db.svelte';
-	import { fmtRangeLabel } from '$lib/format';
+	import { fmtRangeLabel, fmtShort } from '$lib/format';
 	import { myInvitee } from '$lib/polls';
 	import type { Poll } from '$lib/types';
+
+	function finalizedLabel(poll: Poll): string {
+		if (!poll.finalizedStart || !poll.finalizedEnd) return '';
+		return poll.finalizedStart === poll.finalizedEnd
+			? fmtShort(poll.finalizedStart)
+			: `${fmtShort(poll.finalizedStart)} – ${fmtShort(poll.finalizedEnd)}`;
+	}
 
 	function open(poll: Poll) {
 		const mine = myInvitee(poll);
@@ -68,6 +75,11 @@
 			</div>
 			<span class="text-[12.5px] text-subtext">{fmtRangeLabel(poll.rangeStart, poll.rangeEnd)}</span
 			>
+			{#if poll.finalizedAt}
+				<span class="text-[12px] font-semibold" style="color:var(--color-accent)">
+					✓ Locked in · {finalizedLabel(poll)}
+				</span>
+			{/if}
 			<span class="text-xs text-muted">
 				{poll.invitees.length} invited · {poll.invitees.length - pendingCount} responded
 			</span>

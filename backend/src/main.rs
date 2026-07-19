@@ -95,6 +95,8 @@ async fn main() -> anyhow::Result<()> {
 		.route("/api/polls", get(handlers::polls::list).post(handlers::polls::create))
 		.route("/api/polls/:id", get(handlers::polls::get))
 		.route("/api/polls/:id/respond", post(handlers::polls::respond))
+		.route("/api/polls/:id/finalize", post(handlers::polls::finalize))
+		.route("/api/polls/:id/reopen", post(handlers::polls::reopen))
 		.route("/api/public/polls/:token", get(handlers::polls::public_get))
 		.route(
 			"/api/public/polls/:token/respond",
