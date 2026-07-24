@@ -51,6 +51,34 @@ pub async fn send_magic_link_email(config: &Config, to: &str, url: &str) {
 	send_email(config, to, subject, &text, &format!("[loosedays] magic link for {to}: {url}")).await;
 }
 
+/// Sunday reminder nudging a user to fill in their availability for the coming
+/// week. `week_start` is the Monday that week begins on; `calendar_url` points
+/// straight at their calendar so it's one tap from the email.
+pub async fn send_weekly_nudge_email(
+	config: &Config,
+	to: &str,
+	name: &str,
+	calendar_url: &str,
+	week_start: chrono::NaiveDate,
+) {
+	let week_label = week_start.format("%A %B %-d");
+	let subject = "Add your Loose Days for next week";
+	let text = format!(
+		"Hi {name},\n\n\
+		 A new week's coming up (starting {week_label}). Take a minute to mark which days you're free, busy, or maybe — so your friends know when you're around.\n\n\
+		 Open your calendar:\n\n{calendar_url}\n\n\
+		 — Loose Days"
+	);
+	send_email(
+		config,
+		to,
+		subject,
+		&text,
+		&format!("[loosedays] weekly nudge for {to} (week of {week_start})"),
+	)
+	.await;
+}
+
 /// Invite notification for someone who isn't on Loose Days yet. Unlike the
 /// magic link this carries no token — it just points them at the sign-in
 /// screen, where their now-allowlisted email can request its own link.
