@@ -122,6 +122,21 @@ group. No other provider is wired up out of the box, but
 `backend/src/email.rs` is a small, self-contained module if you want to swap
 in your own.
 
+### Weekly nudge
+
+Every Sunday the backend emails onboarded users a reminder to fill in their
+availability for the coming week — but only those who haven't already marked
+any day of that week, so it never nags people who've already planned it. The
+send goes through the same Resend-or-console path as the magic link (so
+without `RESEND_API_KEY` the nudges are just logged), and a `weekly_nudges`
+table makes it idempotent across restarts. Tune it in `.env`:
+
+- `WEEKLY_NUDGE_ENABLED` — `false` to turn it off (default on).
+- `WEEKLY_NUDGE_HOUR` / `WEEKLY_NUDGE_MINUTE` — send time on a 24h clock
+  (default `18:00`).
+- `WEEKLY_NUDGE_TZ` — IANA timezone that time is interpreted in (default
+  `UTC`).
+
 ### The database
 
 Postgres is provisioned by `docker-compose.yml` with a named volume

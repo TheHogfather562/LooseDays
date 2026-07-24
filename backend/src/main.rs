@@ -7,6 +7,7 @@ mod extractors;
 mod handlers;
 mod phone;
 mod repo;
+mod scheduler;
 mod state;
 mod types;
 mod webauthn;
@@ -41,6 +42,9 @@ async fn main() -> anyhow::Result<()> {
 	let port = config.port;
 	let webauthn_instance = webauthn::build(&config)?;
 	let state = AppState { pool, config, webauthn: webauthn_instance };
+
+	// Background task: emails users a Sunday reminder to plan the coming week.
+	scheduler::spawn(state.clone());
 
 	let app = Router::new()
 		.route("/api/auth/magic-link", post(handlers::auth::magic_link))
