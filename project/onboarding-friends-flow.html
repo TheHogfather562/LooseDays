@@ -1,0 +1,1599 @@
+<title>Loose Days — onboarding &amp; find-friends flow</title>
+
+<style>
+	/* ---------------------------------------------------------------
+	   Chrome tokens (the page around the phone). Theme-aware.
+	   The phone screen itself deliberately stays in the app's single
+	   committed look — cream ground, green accent — because that IS the
+	   product. Tokens below are lifted from src/routes/layout.css.
+	   --------------------------------------------------------------- */
+	:root {
+		--ld-page: #f0eee9;
+		--ld-card: #fbfaf7;
+		--ld-line: #e9e4d8;
+		--ld-ink: #1a1a1a;
+		--ld-subtext: #8a8374;
+		--ld-subtext-2: #9a9384;
+		--ld-muted: #a39d90;
+		--ld-muted-2: #b7b0a1;
+		--ld-faint: #d8d3c6;
+		--ld-accent: #3f7a5c;
+		--ld-wash: #eef3ea;
+		--ld-chip: #f0eee9;
+		--ld-free: #7a9b7e;
+		--ld-maybe: #c48a2e;
+		--ld-busy: #b0483f;
+
+		/* chrome */
+		--ground: #e8e5dd;
+		--ground-2: #f3f1ea;
+		--rule: #d3cec1;
+		--fg: #201d18;
+		--fg-2: #5f594e;
+		--fg-3: #857e70;
+		--pin: #2f6a4d;
+		--pin-wash: #dfe9e0;
+		--flag: #9a5236;
+		--shadow: 0 24px 70px rgba(32, 29, 24, 0.16);
+
+		--display: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+		--body: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+		--mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace;
+	}
+
+	@media (prefers-color-scheme: dark) {
+		:root {
+			--ground: #191713;
+			--ground-2: #211e19;
+			--rule: #352f26;
+			--fg: #f2efe7;
+			--fg-2: #b4ac9c;
+			--fg-3: #8b8373;
+			--pin: #7fb094;
+			--pin-wash: #21302a;
+			--flag: #d08b6b;
+			--shadow: 0 28px 80px rgba(0, 0, 0, 0.6);
+		}
+	}
+	:root[data-theme='dark'] {
+		--ground: #191713;
+		--ground-2: #211e19;
+		--rule: #352f26;
+		--fg: #f2efe7;
+		--fg-2: #b4ac9c;
+		--fg-3: #8b8373;
+		--pin: #7fb094;
+		--pin-wash: #21302a;
+		--flag: #d08b6b;
+		--shadow: 0 28px 80px rgba(0, 0, 0, 0.6);
+	}
+	:root[data-theme='light'] {
+		--ground: #e8e5dd;
+		--ground-2: #f3f1ea;
+		--rule: #d3cec1;
+		--fg: #201d18;
+		--fg-2: #5f594e;
+		--fg-3: #857e70;
+		--pin: #2f6a4d;
+		--pin-wash: #dfe9e0;
+		--flag: #9a5236;
+		--shadow: 0 24px 70px rgba(32, 29, 24, 0.16);
+	}
+
+	* {
+		box-sizing: border-box;
+	}
+	body {
+		margin: 0;
+		background: var(--ground);
+		color: var(--fg);
+		font-family: var(--body);
+		font-size: 15px;
+		line-height: 1.6;
+		-webkit-font-smoothing: antialiased;
+	}
+	:focus-visible {
+		outline: 2px solid var(--pin);
+		outline-offset: 2px;
+		border-radius: 4px;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		* {
+			animation-duration: 0.01ms !important;
+			transition-duration: 0.01ms !important;
+		}
+	}
+
+	.wrap {
+		max-width: 1180px;
+		margin: 0 auto;
+		padding: 30px 24px 72px;
+	}
+
+	.eyebrow {
+		font-family: var(--mono);
+		font-size: 11px;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: var(--fg-3);
+		margin: 0 0 10px;
+	}
+	h1.title {
+		font-family: var(--display);
+		font-size: clamp(25px, 3.1vw, 33px);
+		font-weight: 600;
+		letter-spacing: -0.02em;
+		line-height: 1.15;
+		text-wrap: balance;
+		max-width: 22ch;
+		margin: 0 0 10px;
+	}
+	.lede {
+		max-width: 66ch;
+		color: var(--fg-2);
+		margin: 0;
+		font-size: 15px;
+	}
+
+	/* ---- step rail ---- */
+	.rail {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin: 22px 0 22px;
+		list-style: none;
+		border-top: 1px solid var(--rule);
+		border-bottom: 1px solid var(--rule);
+		padding: 11px 0;
+	}
+	.rail button {
+		font-family: var(--body);
+		display: flex;
+		align-items: baseline;
+		gap: 8px;
+		background: transparent;
+		border: 1px solid transparent;
+		border-radius: 999px;
+		padding: 6px 13px 6px 9px;
+		cursor: pointer;
+		color: var(--fg-2);
+		font-size: 13.5px;
+		transition:
+			background 0.16s ease,
+			color 0.16s ease;
+	}
+	.rail button:hover {
+		background: var(--ground-2);
+		color: var(--fg);
+	}
+	.rail button[aria-current='true'] {
+		background: var(--pin-wash);
+		color: var(--pin);
+		border-color: color-mix(in srgb, var(--pin) 30%, transparent);
+		font-weight: 600;
+	}
+	.rail .num {
+		font-family: var(--mono);
+		font-size: 10.5px;
+		opacity: 0.75;
+		font-variant-numeric: tabular-nums;
+	}
+
+	/* ---- stage ---- */
+	.stage {
+		display: grid;
+		grid-template-columns: minmax(0, 390px) minmax(0, 1fr);
+		gap: 46px;
+		align-items: start;
+	}
+	@media (max-width: 900px) {
+		.stage {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 30px;
+			justify-items: center;
+		}
+	}
+
+	.device {
+		width: 390px;
+		max-width: 100%;
+		border-radius: 40px;
+		padding: 11px;
+		background: linear-gradient(170deg, #46413a, #221f1a);
+		box-shadow:
+			var(--shadow),
+			0 0 0 1px rgba(255, 255, 255, 0.06);
+		position: sticky;
+		top: 24px;
+	}
+	@media (max-width: 900px) {
+		.device {
+			position: static;
+		}
+	}
+	.screen {
+		height: 668px;
+		border-radius: 30px;
+		overflow: hidden;
+		background: var(--ld-card);
+		display: flex;
+		flex-direction: column;
+		font-size: 14px;
+		color: var(--ld-ink);
+		position: relative;
+	}
+	.screen .scroll {
+		flex: 1;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+	}
+	.screen .scroll::-webkit-scrollbar {
+		display: none;
+	}
+	.screen .scroll {
+		scrollbar-width: none;
+	}
+
+	/* ---- notes column ---- */
+	.notes {
+		max-width: 60ch;
+	}
+	.notes h2 {
+		font-family: var(--display);
+		font-size: 22px;
+		font-weight: 600;
+		letter-spacing: -0.015em;
+		margin: 0 0 4px;
+		text-wrap: balance;
+	}
+	.notes .sub {
+		font-family: var(--mono);
+		font-size: 11px;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--fg-3);
+		margin: 0 0 18px;
+	}
+	.notes dl {
+		margin: 0;
+		display: grid;
+		gap: 16px;
+	}
+	.notes dt {
+		font-size: 14px;
+		font-weight: 600;
+		color: var(--fg);
+		margin-bottom: 2px;
+	}
+	.notes dd {
+		margin: 0;
+		color: var(--fg-2);
+		font-size: 14px;
+	}
+	.notes dd .was {
+		display: block;
+		margin-top: 4px;
+		font-size: 13px;
+		color: var(--fg-3);
+	}
+	.notes dd .was b {
+		font-weight: 600;
+		color: var(--flag);
+	}
+	.tryit {
+		margin: 22px 0 0;
+		padding: 14px 16px;
+		border: 1px dashed var(--rule);
+		border-radius: 12px;
+		background: var(--ground-2);
+		font-size: 13.5px;
+		color: var(--fg-2);
+	}
+	.tryit b {
+		color: var(--fg);
+		font-weight: 600;
+	}
+
+	/* ---- comparison + build sections ---- */
+	.section {
+		margin-top: 64px;
+		border-top: 1px solid var(--rule);
+		padding-top: 34px;
+	}
+	.section h2 {
+		font-family: var(--display);
+		font-size: 24px;
+		font-weight: 600;
+		letter-spacing: -0.015em;
+		margin: 0 0 18px;
+	}
+	.tablewrap {
+		overflow-x: auto;
+	}
+	table {
+		border-collapse: collapse;
+		width: 100%;
+		min-width: 640px;
+		font-size: 14px;
+	}
+	th,
+	td {
+		text-align: left;
+		padding: 12px 14px;
+		border-bottom: 1px solid var(--rule);
+		vertical-align: top;
+	}
+	th {
+		font-family: var(--mono);
+		font-size: 10.5px;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--fg-3);
+		font-weight: 500;
+	}
+	td:first-child {
+		color: var(--fg);
+		font-weight: 600;
+		width: 21%;
+	}
+	td.before {
+		color: var(--fg-2);
+	}
+	td.after {
+		color: var(--fg);
+	}
+	td.after::before {
+		content: '';
+		display: inline-block;
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: var(--pin);
+		margin-right: 8px;
+		vertical-align: middle;
+	}
+	.build {
+		display: grid;
+		gap: 12px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.build li {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		gap: 12px;
+		align-items: start;
+		font-size: 14px;
+		color: var(--fg-2);
+		padding-bottom: 12px;
+		border-bottom: 1px solid var(--rule);
+	}
+	.build code {
+		font-family: var(--mono);
+		font-size: 12px;
+		background: var(--ground-2);
+		border: 1px solid var(--rule);
+		border-radius: 6px;
+		padding: 2px 6px;
+		color: var(--fg);
+		white-space: nowrap;
+	}
+	.build b {
+		color: var(--fg);
+	}
+	footer {
+		margin-top: 40px;
+		font-size: 13px;
+		color: var(--fg-3);
+	}
+
+	/* =============================================================
+	   In-phone app styles — mirrors the real Svelte components
+	   ============================================================= */
+	.p {
+		padding: 0 22px;
+	}
+	.h1 {
+		font-family: var(--display);
+		font-size: 22px;
+		font-weight: 600;
+		letter-spacing: -0.01em;
+		margin: 0 0 6px;
+		color: var(--ld-ink);
+	}
+	.sub {
+		margin: 0;
+		font-size: 12.5px;
+		line-height: 1.6;
+		color: var(--ld-subtext-2);
+	}
+	.label {
+		font-size: 12px;
+		font-weight: 600;
+		color: var(--ld-subtext);
+	}
+	.field {
+		width: 100%;
+		border: 1px solid var(--ld-line);
+		border-radius: 10px;
+		padding: 11px 12px;
+		font-size: 13.5px;
+		font-family: inherit;
+		color: var(--ld-ink);
+		background: #fff;
+	}
+	.field::placeholder {
+		color: var(--ld-muted-2);
+	}
+	.field:focus {
+		outline: 2px solid var(--ld-accent);
+		outline-offset: -1px;
+		border-color: transparent;
+	}
+	.btn {
+		font-family: inherit;
+		border: none;
+		border-radius: 10px;
+		background: var(--ld-accent);
+		color: #fff;
+		font-size: 13.5px;
+		font-weight: 600;
+		padding: 13px;
+		width: 100%;
+		cursor: pointer;
+	}
+	.btn[disabled] {
+		background: var(--ld-faint);
+		cursor: default;
+	}
+	.btn.ghost {
+		background: transparent;
+		color: var(--ld-subtext);
+		font-size: 12.5px;
+		padding: 8px;
+		font-weight: 600;
+	}
+	.btn.chip {
+		background: var(--ld-chip);
+		color: var(--ld-ink);
+		width: auto;
+		padding: 9px 14px;
+		font-size: 12.5px;
+	}
+	.pill {
+		font-family: inherit;
+		border: 1px solid var(--ld-accent);
+		background: #fff;
+		color: var(--ld-accent);
+		border-radius: 8px;
+		padding: 6px 12px;
+		font-size: 12px;
+		font-weight: 600;
+		cursor: pointer;
+		white-space: nowrap;
+	}
+	.pill.done {
+		border-color: transparent;
+		background: var(--ld-wash);
+		cursor: default;
+	}
+	.pill.alt {
+		border-color: var(--ld-line);
+		color: var(--ld-subtext);
+	}
+	.row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+		background: #fff;
+		border: 1px solid var(--ld-line);
+		border-radius: 14px;
+		padding: 11px 14px;
+	}
+	.row .who {
+		min-width: 0;
+	}
+	.row .nm {
+		font-size: 13.5px;
+		font-weight: 600;
+		color: var(--ld-ink);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.row .meta {
+		font-size: 11.5px;
+		color: var(--ld-muted);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.avatar {
+		width: 34px;
+		height: 34px;
+		border-radius: 50%;
+		background: var(--ld-avatar, #e7e1d3);
+		display: grid;
+		place-items: center;
+		font-size: 12.5px;
+		font-weight: 600;
+		color: #6f6858;
+		flex: none;
+	}
+	.grouplabel {
+		font-size: 11px;
+		font-weight: 600;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--ld-muted);
+		padding: 0 22px;
+	}
+	.stack {
+		display: flex;
+		flex-direction: column;
+		gap: 9px;
+		padding: 0 18px;
+	}
+	.progress {
+		display: flex;
+		gap: 5px;
+		padding: 18px 22px 0;
+	}
+	.progress i {
+		height: 3px;
+		flex: 1;
+		border-radius: 2px;
+		background: var(--ld-faint);
+	}
+	.progress i.on {
+		background: var(--ld-accent);
+	}
+	.topbar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 16px 22px 0;
+		font-size: 12px;
+		color: var(--ld-muted);
+	}
+	.topbar button {
+		font-family: inherit;
+		border: none;
+		background: transparent;
+		color: var(--ld-subtext);
+		font-size: 12.5px;
+		font-weight: 600;
+		cursor: pointer;
+		padding: 4px;
+	}
+	.bar {
+		border-top: 1px solid var(--ld-line);
+		background: rgba(251, 250, 247, 0.96);
+		backdrop-filter: blur(6px);
+		padding: 12px 18px 16px;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	.tally {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		font-size: 12px;
+		color: var(--ld-subtext);
+	}
+	.tally b {
+		color: var(--ld-accent);
+	}
+	.note {
+		font-size: 11px;
+		line-height: 1.55;
+		color: var(--ld-muted-2);
+		margin: 0;
+	}
+	.tabs {
+		display: flex;
+		border-top: 1px solid var(--ld-line);
+		background: #fff;
+		padding: 11px 0 18px;
+	}
+	.tabs div {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 5px;
+		font-size: 10.5px;
+		color: var(--ld-muted);
+	}
+	.tabs div.on {
+		color: var(--ld-ink);
+		font-weight: 600;
+	}
+	.tabs .glyph {
+		width: 9px;
+		height: 9px;
+		background: var(--ld-tab, #c9c2b3);
+	}
+	.tabs div.on .glyph {
+		background: var(--ld-accent);
+	}
+	.days {
+		display: grid;
+		grid-template-columns: repeat(7, 1fr);
+		gap: 6px;
+		padding: 0 18px;
+	}
+	.day {
+		font-family: inherit;
+		border: 1px solid var(--ld-line);
+		background: #fff;
+		border-radius: 10px;
+		padding: 7px 0 8px;
+		cursor: pointer;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 3px;
+	}
+	.day .dow {
+		font-size: 9.5px;
+		color: var(--ld-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+	.day .dnum {
+		font-size: 14px;
+		font-weight: 600;
+		color: var(--ld-ink);
+		font-variant-numeric: tabular-nums;
+	}
+	.day .dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: transparent;
+	}
+	.day[data-s='free'] {
+		background: var(--ld-wash);
+		border-color: color-mix(in srgb, var(--ld-free) 45%, transparent);
+	}
+	.day[data-s='free'] .dot {
+		background: var(--ld-free);
+	}
+	.day[data-s='maybe'] .dot {
+		background: var(--ld-maybe);
+	}
+	.day[data-s='busy'] .dot {
+		background: var(--ld-busy);
+	}
+	.toast {
+		position: absolute;
+		left: 18px;
+		right: 18px;
+		bottom: 18px;
+		background: #262320;
+		color: #fbfaf7;
+		border-radius: 12px;
+		padding: 11px 14px;
+		font-size: 12.5px;
+		font-weight: 500;
+		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+		animation: rise 0.22s ease;
+	}
+	@keyframes rise {
+		from {
+			opacity: 0;
+			transform: translateY(8px);
+		}
+	}
+	.empty {
+		margin: 8px 18px 0;
+		border: 1px dashed var(--ld-line);
+		border-radius: 16px;
+		padding: 26px 22px;
+		text-align: center;
+		color: var(--ld-subtext-2);
+		font-size: 12.5px;
+		line-height: 1.6;
+	}
+	.card {
+		margin: 0 18px;
+		border: 1px solid color-mix(in srgb, var(--ld-accent) 35%, transparent);
+		background: var(--ld-wash);
+		border-radius: 16px;
+		padding: 14px 16px;
+		display: flex;
+		flex-direction: column;
+		gap: 9px;
+	}
+	.card .t {
+		font-size: 13px;
+		font-weight: 600;
+		color: var(--ld-ink);
+	}
+	.card .d {
+		font-size: 11.5px;
+		color: #55705c;
+		line-height: 1.55;
+	}
+	.privacy {
+		display: flex;
+		gap: 8px;
+		align-items: flex-start;
+		font-size: 11px;
+		line-height: 1.55;
+		color: var(--ld-muted);
+	}
+	.privacy .lock {
+		flex: none;
+		width: 13px;
+		height: 13px;
+		border: 1.5px solid var(--ld-muted-2);
+		border-radius: 3px;
+		margin-top: 2px;
+		position: relative;
+	}
+	.privacy .lock::before {
+		content: '';
+		position: absolute;
+		left: 3px;
+		right: 3px;
+		top: -4px;
+		height: 5px;
+		border: 1.5px solid var(--ld-muted-2);
+		border-bottom: none;
+		border-radius: 4px 4px 0 0;
+	}
+	.saved {
+		font-size: 11.5px;
+		font-weight: 600;
+		color: var(--ld-accent);
+	}
+	.seg {
+		display: flex;
+		gap: 6px;
+	}
+	.seg button {
+		font-family: inherit;
+		flex: 1;
+		border: 1px solid var(--ld-line);
+		background: #fff;
+		border-radius: 9px;
+		padding: 7px 0;
+		font-size: 11.5px;
+		font-weight: 600;
+		color: var(--ld-subtext);
+		cursor: pointer;
+	}
+	.seg button.on {
+		border-color: var(--ld-accent);
+		color: var(--ld-accent);
+		background: var(--ld-wash);
+	}
+</style>
+
+<div class="wrap">
+	<p class="eyebrow">Loose Days · interactive prototype</p>
+	<h1 class="title">Getting in, and finding your people, without the dead ends</h1>
+	<p class="lede">
+		A working click-through of a reworked sign-up and friend search. Onboarding becomes three light
+		steps you can skip through instead of one gated screen, and the two separate lookup boxes
+		collapse into a single search that takes a name, an email, or a number. Everything below is
+		live — type in it, tap things.
+	</p>
+
+	<ul class="rail" id="rail"></ul>
+
+	<div class="stage">
+		<div class="device">
+			<div class="screen">
+				<div class="scroll" id="screen"></div>
+				<div id="chrome"></div>
+				<div id="toast"></div>
+			</div>
+		</div>
+		<div class="notes" id="notes"></div>
+	</div>
+
+	<section class="section">
+		<h2>What changes, point for point</h2>
+		<div class="tablewrap">
+			<table>
+				<thead>
+					<tr>
+						<th>Moment</th>
+						<th>Today</th>
+						<th>Proposed</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td>First screen after sign-in</td>
+						<td class="before">
+							One screen holding a phone field, a contact importer, a number lookup, an email lookup
+							and a Continue button.
+						</td>
+						<td class="after">
+							Three steps with a progress bar: identify yourself, find people, mark a few days. One
+							decision per screen.
+						</td>
+					</tr>
+					<tr>
+						<td>Getting past onboarding</td>
+						<td class="before">
+							Hard-gated on saving a phone number. No number, no app — and pressing Save is a
+							separate manual step that silently un-saves if you edit the field again.
+						</td>
+						<td class="after">
+							Number saves itself when it's valid, with an inline tick. Every step has a real
+							&ldquo;Skip for now&rdquo; that lands you in the app.
+						</td>
+					</tr>
+					<tr>
+						<td>Why you're handing over a number</td>
+						<td class="before">
+							Unexplained. The hashing guarantee lives in the README, not in front of the person
+							typing.
+						</td>
+						<td class="after">
+							Said at the field: stored as a one-way hash, never in the clear, never shown to
+							anyone.
+						</td>
+					</tr>
+					<tr>
+						<td>Finding one person</td>
+						<td class="before">
+							Two boxes with two models — &ldquo;add by number&rdquo; and &ldquo;find by
+							email&rdquo; — and you have to know which one applies before you can start.
+						</td>
+						<td class="after">
+							One box. Type a name, an email or a number; the field works out which it is and
+							searches all three.
+						</td>
+					</tr>
+					<tr>
+						<td>Searching by name</td>
+						<td class="before">
+							Not possible. Exact number or exact email only — you need the data before you can
+							look anyone up.
+						</td>
+						<td class="after">
+							Name search across friends-of-friends, which is where nearly everyone you'd add
+							actually is.
+						</td>
+					</tr>
+					<tr>
+						<td>Arriving with nothing</td>
+						<td class="before">
+							A blank screen and a search box. Nothing to act on until you produce a number from
+							memory.
+						</td>
+						<td class="after">
+							Suggestions are on screen before you type — mutual friends first, then anyone from
+							your contacts already here.
+						</td>
+					</tr>
+					<tr>
+						<td>People not on Loose Days</td>
+						<td class="before">
+							Split: numbers queue for a bulk SMS, emails fire one at a time from a different box.
+						</td>
+						<td class="after">
+							One queue, one tally, one hand-off — text and email invites go out together from the
+							same button.
+						</td>
+					</tr>
+					<tr>
+						<td>Landing in the app</td>
+						<td class="before">Empty calendar, empty friends list, nothing scheduled.</td>
+						<td class="after">
+							Friends already listed, invites ready to send, and a fortnight of days you marked on
+							the way in.
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</section>
+
+	<section class="section">
+		<h2>What it takes to build</h2>
+		<ul class="build">
+			<li>
+				<code>GET /api/friends/suggestions</code>
+				<span
+					><b>Friends-of-friends, ranked by mutual count.</b> Two hops over the existing
+					<code>friend_edges</code> table, which is already symmetric — no new data collected, no new
+					columns.</span
+				>
+			</li>
+			<li>
+				<code>POST /api/friends/search</code>
+				<span
+					><b>One endpoint behind the single box.</b> Detects email / phone / name, then folds
+					together today's <code>search_by_email</code> and <code>match_contacts</code> plus a name
+					match. Name matching is <b>scoped to friends-of-friends</b> on purpose — a global name
+					directory would leak the whole user list, so a stranger stays unfindable by name.</span
+				>
+			</li>
+			<li>
+				<code>&lt;FriendSearch /&gt;</code>
+				<span
+					><b>Replaces ContactFinder and EmailFinder.</b> Both current components already ship on two
+					screens each; one component keeps onboarding and <code>/friends/add</code> identical for
+					free.</span
+				>
+			</li>
+			<li>
+				<code>/onboarding?step=</code>
+				<span
+					><b>Three steps in the existing route</b>, step held in the URL so back works. Auto-save on
+					the phone field removes the stale-save trap in the current screen, and
+					<code>completeOnboarding()</code> becomes reachable from any step.</span
+				>
+			</li>
+			<li>
+				<code>invite queue</code>
+				<span
+					><b>Merged hand-off.</b> Email invites go through <code>inviteEmail</code>, numbers through
+					the existing bulk SMS link and shared <code>createInviteLink</code> token — one button,
+					same two mechanisms underneath.</span
+				>
+			</li>
+		</ul>
+	</section>
+
+	<footer>
+		Prototype only — mock data, nothing here talks to the backend. Colours and spacing are taken from
+		<code>src/routes/layout.css</code>; the app's Space&nbsp;Grotesk / Inter pairing falls back to
+		system faces here because artifact pages can't load webfonts.
+	</footer>
+</div>
+
+<script>
+	// ---------------------------------------------------------------
+	// Mock directory. `on` = has a Loose Days account. `mutual` = number
+	// of shared friends (drives suggestions). `inContacts` = came back
+	// from the phone's contact picker.
+	// ---------------------------------------------------------------
+	const PEOPLE = [
+		{
+			id: 'sam',
+			name: 'Sam Okafor',
+			on: true,
+			mutual: 4,
+			email: 'sam.okafor@gmail.com',
+			phone: '+1 415-555-0142'
+		},
+		{
+			id: 'priya',
+			name: 'Priya Raman',
+			on: true,
+			mutual: 3,
+			email: 'priya@ramandesign.co',
+			phone: '+1 415-555-0198'
+		},
+		{
+			id: 'tomas',
+			name: 'Tomas Lind',
+			on: true,
+			mutual: 2,
+			email: 'tlind@fastmail.com',
+			phone: '+1 628-555-0117'
+		},
+		{
+			id: 'jules',
+			name: 'Jules Byrne',
+			on: true,
+			mutual: 1,
+			inContacts: true,
+			email: 'jules.byrne@hey.com',
+			phone: '+1 415-555-0163'
+		},
+		{
+			id: 'ade',
+			name: 'Ade Fashola',
+			on: true,
+			mutual: 0,
+			inContacts: true,
+			email: 'ade@fashola.dev',
+			phone: '+1 510-555-0129'
+		},
+		{
+			id: 'nina',
+			name: 'Nina Kovač',
+			on: false,
+			inContacts: true,
+			phone: '+1 415-555-0174'
+		},
+		{
+			id: 'marcus',
+			name: 'Marcus Webb',
+			on: false,
+			inContacts: true,
+			phone: '+1 415-555-0155'
+		},
+		{
+			id: 'dana',
+			name: 'Dana Hart',
+			on: false,
+			inContacts: true,
+			phone: '+1 707-555-0181'
+		},
+		{
+			id: 'samira',
+			name: 'Samira Doyle',
+			on: true,
+			mutual: 2,
+			email: 'samira.d@proton.me',
+			phone: '+1 415-555-0136'
+		}
+	];
+
+	const byId = (id) => PEOPLE.find((p) => p.id === id);
+	const initials = (n) =>
+		n
+			.split(' ')
+			.map((w) => w[0])
+			.slice(0, 2)
+			.join('');
+
+	const S = {
+		screen: 'step1',
+		phone: '',
+		phoneSaved: false,
+		skippedPhone: false,
+		imported: false,
+		query: '',
+		added: new Set(),
+		queued: new Set(), // people to invite
+		marks: {},
+		toast: '',
+		toastTimer: null,
+		sent: false
+	};
+
+	const SCREENS = [
+		{ key: 'step1', label: 'Set up' },
+		{ key: 'step2', label: 'Find people' },
+		{ key: 'step3', label: 'Mark days' },
+		{ key: 'friends', label: 'Friends tab' },
+		{ key: 'add', label: 'Add someone later' }
+	];
+
+	const NOTES = {
+		step1: {
+			title: 'Step 1 — how friends will find you',
+			sub: 'Onboarding · 1 of 3',
+			items: [
+				[
+					'The number saves itself',
+					'It commits as soon as it is long enough to be plausible, with a tick in the field. Nothing to press, nothing to forget.',
+					'Today a separate Save button has to be pressed, and editing the field afterwards silently reverts it to unsaved — including the Continue gate.'
+				],
+				[
+					'Skipping is a real option',
+					'“Set this up later” goes straight through to the app. The number is how phone matching works, so it is asked for first — but it is not a wall.',
+					'Today Continue is dead until a number is saved. No number, no app.'
+				],
+				[
+					'The privacy promise appears where the anxiety does',
+					'One line under the field: stored as a one-way hash, never in the clear, never shown to anyone.',
+					'Today that guarantee is real but lives only in the README.'
+				]
+			],
+			try: 'Type any number into the field and watch it commit on its own — or press <b>Set this up later</b> and carry on regardless.'
+		},
+		step2: {
+			title: 'Step 2 — one box, three kinds of answer',
+			sub: 'Onboarding · 2 of 3 · the core of it',
+			items: [
+				[
+					'Suggestions before you type anything',
+					'Friends-of-friends, ranked by mutual count, are on screen the moment the step opens. The first friend can be added without typing at all.',
+					'Today the screen opens empty and waits for you to produce a phone number from memory.'
+				],
+				[
+					'Name, email, or number — same field',
+					'The box works out what you typed. “sam” matches people; “@” searches email; digits search numbers and your contacts at once.',
+					'Today these are two separate boxes with two models, and name search does not exist in any form.'
+				],
+				[
+					'Results say what to do with each person',
+					'Already here → Add. In your contacts but not here → queued for an invite. Neither → invite the raw number or address you typed.',
+					'Today numbers queue for a bulk SMS while emails are invited one at a time from a different component.'
+				],
+				[
+					'One running tally',
+					'Added and queued counts sit at the bottom of the screen the whole time, so the invite hand-off is a single tap at the end.',
+					''
+				]
+			],
+			try: 'Press <b>Import from contacts</b>, then try typing <b>sam</b>, <b>@fastmail</b>, or <b>415</b> in the search field.'
+		},
+		step3: {
+			title: 'Step 3 — leave with a calendar worth showing',
+			sub: 'Onboarding · 3 of 3',
+			items: [
+				[
+					'A fortnight, tappable',
+					'Tap a day to cycle free → maybe → busy. Marking a couple of days means a friend who looks you up on day one sees something.',
+					'Today onboarding ends on an empty calendar, so the first friend to request access finds nothing.'
+				],
+				[
+					'Still skippable',
+					'“Do this later” finishes setup exactly the same way. This step earns its place by being fast, not by being mandatory.',
+					''
+				]
+			],
+			try: 'Tap a few days — each tap cycles the status — then finish setup.'
+		},
+		friends: {
+			title: 'Landing somewhere populated',
+			sub: 'After onboarding',
+			items: [
+				[
+					'The friends you just added are already here',
+					'The tab opens with people in it and the invite hand-off waiting as a card, instead of the empty state and a link back to a search box.',
+					'Today a new account lands on “No friends yet”.'
+				],
+				[
+					'The invite queue survives the step',
+					'Anyone queued during onboarding is still queued here. Texts and emails go out together from one button.',
+					'Today the queue only exists inside the finder component and is lost the moment you navigate away.'
+				]
+			],
+			try: 'Press <b>Send invites</b> to see the hand-off, then open <b>Add someone later</b>.'
+		},
+		add: {
+			title: 'The same search, any time after',
+			sub: 'Friends → Add a friend',
+			items: [
+				[
+					'One component, two places',
+					'The add-friend screen is the step-2 searcher with a header on it — so the flow you learn during onboarding is the flow you keep.',
+					'Today two components are stitched into both screens, and the two screens can drift apart.'
+				],
+				[
+					'Name search stays scoped',
+					'Matching runs over friends-of-friends only. That is where nearly everyone you would add already is, and it stops the search doubling as a global directory of every user.',
+					''
+				]
+			],
+			try: 'Search <b>priya</b> or <b>tomas</b> — both are two hops away, so both are findable by name.'
+		}
+	};
+
+	// ---------------------------------------------------------------
+	// Search. Mirrors the proposed POST /api/friends/search: work out
+	// what was typed, then match names (friends-of-friends only),
+	// emails, numbers and imported contacts.
+	// ---------------------------------------------------------------
+	function classify(q) {
+		if (q.includes('@')) return 'email';
+		if (q.replace(/\D/g, '').length >= 3 && /^[+\d\s()-]+$/.test(q)) return 'phone';
+		return 'name';
+	}
+
+	function search(q) {
+		const t = q.trim().toLowerCase();
+		if (!t) return [];
+		const kind = classify(t);
+		const digits = t.replace(/\D/g, '');
+		return PEOPLE.filter((p) => {
+			if (kind === 'email') return (p.email || '').includes(t.replace(/^@/, '')) || false;
+			if (kind === 'phone') return digits && p.phone.replace(/\D/g, '').includes(digits);
+			// Name search is deliberately limited to people within two hops,
+			// plus anyone already pulled in from the phone's contacts.
+			const reachable = (p.mutual || 0) > 0 || p.inContacts;
+			return reachable && p.name.toLowerCase().includes(t);
+		});
+	}
+
+	function suggestions() {
+		// Added people stay in place showing "Added ✓" rather than vanishing —
+		// a row disappearing under your finger reads as a mistake.
+		return PEOPLE.filter((p) => p.on && (p.mutual || 0) >= 2).sort((a, b) => b.mutual - a.mutual);
+	}
+
+	function contactMatches() {
+		return PEOPLE.filter((p) => p.inContacts);
+	}
+
+	// ---------------------------------------------------------------
+	// Actions
+	// ---------------------------------------------------------------
+	function toast(msg) {
+		S.toast = msg;
+		clearTimeout(S.toastTimer);
+		S.toastTimer = setTimeout(() => {
+			S.toast = '';
+			render();
+		}, 2600);
+	}
+
+	function addPerson(id) {
+		S.added.add(id);
+		toast(`${byId(id).name} added.`);
+		render();
+	}
+
+	function queuePerson(id) {
+		if (S.queued.has(id)) S.queued.delete(id);
+		else S.queued.add(id);
+		render();
+	}
+
+	function go(screen) {
+		S.screen = screen;
+		document.getElementById('screen').scrollTop = 0;
+		render();
+	}
+
+	function onPhone(v) {
+		S.phone = v;
+		S.phoneSaved = v.replace(/\D/g, '').length >= 10;
+	}
+
+	function toggleDay(i) {
+		const order = [undefined, 'free', 'maybe', 'busy'];
+		const next = order[(order.indexOf(S.marks[i]) + 1) % order.length];
+		if (next) S.marks[i] = next;
+		else delete S.marks[i];
+		render();
+	}
+
+	// ---------------------------------------------------------------
+	// Rendering
+	// ---------------------------------------------------------------
+	const esc = (s) => String(s).replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+
+	function personRow(p, ctx) {
+		const added = S.added.has(p.id);
+		const queued = S.queued.has(p.id);
+		let meta, action;
+		if (p.on) {
+			// Say the most identifying thing available: shared friends beat a bare
+			// "on Loose Days" when you're deciding whether this is the right Sam.
+			const mutual = p.mutual ? `${p.mutual} mutual friend${p.mutual === 1 ? '' : 's'}` : '';
+			meta =
+				ctx === 'suggestion'
+					? mutual
+					: [p.inContacts ? 'In your contacts' : mutual, 'on Loose Days'].filter(Boolean).join(' · ');
+			action = added
+				? `<span class="pill done">Added ✓</span>`
+				: `<button class="pill" data-add="${p.id}">Add</button>`;
+		} else {
+			meta = 'Not on Loose Days yet';
+			action = queued
+				? `<button class="pill done" data-queue="${p.id}">Queued ✓</button>`
+				: `<button class="pill alt" data-queue="${p.id}">Invite</button>`;
+		}
+		return `<div class="row">
+			<div style="display:flex;align-items:center;gap:11px;min-width:0">
+				<span class="avatar">${esc(initials(p.name))}</span>
+				<span class="who">
+					<span class="nm">${esc(p.name)}</span>
+					<span class="meta" style="display:block">${esc(meta)}</span>
+				</span>
+			</div>
+			${action}
+		</div>`;
+	}
+
+	function searcher() {
+		const q = S.query.trim();
+		const results = search(q);
+		const kind = q ? classify(q) : null;
+		let body = '';
+
+		if (q) {
+			const here = results.filter((p) => p.on);
+			const notHere = results.filter((p) => !p.on);
+			if (here.length) {
+				body += `<div class="grouplabel" style="padding-top:16px">On Loose Days</div>
+					<div class="stack" style="padding-top:8px">${here.map((p) => personRow(p, 'result')).join('')}</div>`;
+			}
+			if (notHere.length) {
+				body += `<div class="grouplabel" style="padding-top:16px">In your contacts — not here yet</div>
+					<div class="stack" style="padding-top:8px">${notHere.map((p) => personRow(p, 'result')).join('')}</div>`;
+			}
+			if (!results.length) {
+				const invitable = kind === 'email' || kind === 'phone';
+				body += `<div class="stack" style="padding-top:16px">
+					<div class="row">
+						<span class="who">
+							<span class="nm">${esc(q)}</span>
+							<span class="meta" style="display:block">${
+								invitable ? 'Nobody here uses this yet' : 'No match among your friends’ friends'
+							}</span>
+						</span>
+						${
+							invitable
+								? `<button class="pill alt" data-invite-raw="1">Invite</button>`
+								: `<span class="meta" style="text-align:right;max-width:120px;white-space:normal">Try their email or number</span>`
+						}
+					</div>
+				</div>`;
+			}
+		} else {
+			const sug = suggestions();
+			if (sug.length) {
+				body += `<div class="grouplabel" style="padding-top:18px">People you may know</div>
+					<p class="note" style="padding:4px 22px 0">Friends of your friends, closest first.</p>
+					<div class="stack" style="padding-top:9px">${sug.map((p) => personRow(p, 'suggestion')).join('')}</div>`;
+			}
+			if (S.imported) {
+				const c = contactMatches();
+				body += `<div class="grouplabel" style="padding-top:18px">From your contacts</div>
+					<div class="stack" style="padding-top:9px">${c.map((p) => personRow(p, 'contact')).join('')}</div>`;
+			}
+		}
+
+		return `
+			<div style="padding:0 22px;display:flex;flex-direction:column;gap:9px">
+				<input class="field" id="q" placeholder="Search a name, email or number"
+					value="${esc(S.query)}" autocomplete="off" />
+				${
+					S.imported
+						? q
+							? ''
+							: `<p class="note">${contactMatches().length} matches from your contacts — ${contactMatches().filter((p) => p.on).length} already here.</p>`
+						: `<button class="btn chip" data-import="1" style="align-self:flex-start">Import from contacts</button>`
+				}
+			</div>
+			${body}
+			<div style="height:18px"></div>`;
+	}
+
+	function inviteBar() {
+		const n = S.queued.size;
+		const a = S.added.size;
+		return `<div class="tally">
+			<span><b>${a}</b> friend${a === 1 ? '' : 's'} added${n ? ` · <b>${n}</b> to invite` : ''}</span>
+		</div>`;
+	}
+
+	function screenStep1() {
+		return `
+		<div class="progress"><i class="on"></i><i></i><i></i></div>
+		<div class="topbar"><span>Step 1 of 3</span><button data-go="step2">Set this up later</button></div>
+		<div class="p" style="padding-top:18px">
+			<h1 class="h1">How friends will find you</h1>
+			<p class="sub">Friends match each other by phone number. Add yours and the people who already
+				have you in their contacts can find you straight away.</p>
+		</div>
+		<div class="p" style="padding-top:22px;display:flex;flex-direction:column;gap:9px">
+			<span class="label">Your phone number</span>
+			<input class="field" id="phone" type="tel" placeholder="+1 555-0100" value="${esc(S.phone)}" />
+			${S.phoneSaved ? `<span class="saved">Saved ✓</span>` : `<span class="note">Saves on its own once it looks complete.</span>`}
+			<div class="privacy" style="padding-top:6px">
+				<span class="lock"></span>
+				<span>Stored as a one-way hash — never in the clear, never shown to anyone, and never used
+					for anything but matching you with friends.</span>
+			</div>
+		</div>
+		<div style="padding:26px 18px 8px;display:flex;flex-direction:column;gap:4px">
+			<button class="btn" data-go="step2">Continue</button>
+			<button class="btn ghost" data-go="step2">Skip for now</button>
+		</div>`;
+	}
+
+	function screenStep2() {
+		return `
+		<div class="progress"><i class="on"></i><i class="on"></i><i></i></div>
+		<div class="topbar"><span>Step 2 of 3</span><button data-go="step3">Skip</button></div>
+		<div class="p" style="padding-top:18px;padding-bottom:16px">
+			<h1 class="h1">Find your people</h1>
+			<p class="sub">Search by name, email or number — or pull in your contacts and we'll tell you
+				who's already here.</p>
+		</div>
+		${searcher()}`;
+	}
+
+	function screenStep3() {
+		const start = new Date(2026, 7, 3);
+		const dows = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+		let cells = '';
+		for (let i = 0; i < 14; i++) {
+			const d = new Date(start);
+			d.setDate(start.getDate() + i);
+			const s = S.marks[i];
+			cells += `<button class="day" data-day="${i}" ${s ? `data-s="${s}"` : ''}>
+				<span class="dow">${dows[d.getDay()]}</span>
+				<span class="dnum">${d.getDate()}</span>
+				<span class="dot"></span>
+			</button>`;
+		}
+		const n = Object.keys(S.marks).length;
+		return `
+		<div class="progress"><i class="on"></i><i class="on"></i><i class="on"></i></div>
+		<div class="topbar"><span>Step 3 of 3</span><button data-go="friends">Do this later</button></div>
+		<div class="p" style="padding-top:18px;padding-bottom:18px">
+			<h1 class="h1">Mark a few loose days</h1>
+			<p class="sub">Tap the days you're free over the next fortnight. Tap again for maybe, then busy.
+				Friends who you give access to see only this.</p>
+		</div>
+		<div class="days">${cells}</div>
+		<div class="p" style="padding-top:16px;display:flex;gap:14px;align-items:center">
+			<span class="privacy" style="gap:6px;align-items:center"><span style="width:7px;height:7px;border-radius:50%;background:var(--ld-free);display:inline-block"></span>Free</span>
+			<span class="privacy" style="gap:6px;align-items:center"><span style="width:7px;height:7px;border-radius:50%;background:var(--ld-maybe);display:inline-block"></span>Maybe</span>
+			<span class="privacy" style="gap:6px;align-items:center"><span style="width:7px;height:7px;border-radius:50%;background:var(--ld-busy);display:inline-block"></span>Busy</span>
+		</div>
+		<div style="padding:26px 18px 8px;display:flex;flex-direction:column;gap:4px">
+			<button class="btn" data-go="friends">${n ? `Finish — ${n} day${n === 1 ? '' : 's'} marked` : 'Finish setup'}</button>
+			<button class="btn ghost" data-go="friends">Do this later</button>
+		</div>`;
+	}
+
+	function screenFriends() {
+		const friends = [...S.added].map(byId);
+		const q = [...S.queued].map(byId);
+		return `
+		<div style="display:flex;align-items:center;justify-content:space-between;padding:26px 22px 4px">
+			<h1 class="h1" style="font-size:24px;margin:0">Friends</h1>
+			<button class="pill" style="border:none;background:var(--ld-accent);color:#fff" data-go="add">+ Add friend</button>
+		</div>
+		${
+			q.length && !S.sent
+				? `<div class="card" style="margin-top:16px">
+						<span class="t">${q.length} invite${q.length === 1 ? '' : 's'} ready to send</span>
+						<span class="d">${q.map((p) => esc(p.name.split(' ')[0])).join(', ')} aren't on Loose Days yet.
+							Opens your messaging app with all of them, ready to text.</span>
+						<button class="btn" style="width:auto;align-self:flex-start;padding:9px 14px;font-size:12.5px"
+							data-send="1">Send ${q.length} invite${q.length === 1 ? '' : 's'}</button>
+					</div>`
+				: ''
+		}
+		${
+			friends.length
+				? `<div class="grouplabel" style="padding-top:20px">Your friends</div>
+					<div class="stack" style="padding-top:9px">${friends
+						.map(
+							(p) => `<div class="row">
+								<div style="display:flex;align-items:center;gap:11px;min-width:0">
+									<span class="avatar">${esc(initials(p.name))}</span>
+									<span class="who"><span class="nm">${esc(p.name)}</span>
+									<span class="meta" style="display:block">No access yet</span></span>
+								</div>
+								<span class="pill">Request access</span>
+							</div>`
+						)
+						.join('')}</div>`
+				: `<div class="empty">
+						<b style="color:var(--ld-ink);display:block;margin-bottom:6px">No friends yet</b>
+						You skipped ahead — add people any time from the button above.
+					</div>`
+		}
+		<div style="height:20px"></div>`;
+	}
+
+	function screenAdd() {
+		return `
+		<div style="display:flex;align-items:center;gap:12px;padding:22px 22px 6px">
+			<button class="pill alt" style="border:none;padding:0 4px 0 0;font-size:18px;line-height:1" data-go="friends" aria-label="Back">‹</button>
+			<h1 class="h1" style="margin:0;font-size:19px">Add a friend</h1>
+		</div>
+		<p class="sub p" style="padding-bottom:16px">The same search you used during setup — a name, an
+			email, or a number.</p>
+		${searcher()}`;
+	}
+
+	function chrome() {
+		if (S.screen === 'friends' || S.screen === 'add') {
+			const t = (k, on) =>
+				`<div class="${on ? 'on' : ''}"><span class="glyph" style="${
+					k === 'Calendar' ? 'border-radius:50%' : k === 'Polls' ? 'transform:rotate(45deg)' : ''
+				}"></span>${k}</div>`;
+			return `<div class="tabs">${t('Calendar', false)}${t('Friends', true)}${t('Polls', false)}</div>`;
+		}
+		if (S.screen === 'step2') {
+			const n = S.queued.size;
+			return `<div class="bar">
+				${inviteBar()}
+				<button class="btn" data-go="step3">${
+					n ? `Continue — invite ${n} later` : S.added.size ? 'Continue' : 'Continue without adding anyone'
+				}</button>
+			</div>`;
+		}
+		if (S.screen === 'add') return '';
+		return '';
+	}
+
+	function renderNotes() {
+		const n = NOTES[S.screen];
+		document.getElementById('notes').innerHTML = `
+			<p class="sub">${n.sub}</p>
+			<h2>${n.title}</h2>
+			<dl>${n.items
+				.map(
+					([t, d, was]) =>
+						`<div><dt>${t}</dt><dd>${d}${was ? `<span class="was"><b>Today:</b> ${was}</span>` : ''}</dd></div>`
+				)
+				.join('')}</dl>
+			<p class="tryit">${n.try}</p>`;
+	}
+
+	function renderRail() {
+		document.getElementById('rail').innerHTML = SCREENS.map(
+			(s, i) =>
+				`<li><button data-go="${s.key}" aria-current="${S.screen === s.key}">
+					<span class="num">${String(i + 1).padStart(2, '0')}</span>${s.label}</button></li>`
+		).join('');
+	}
+
+	function render() {
+		const views = {
+			step1: screenStep1,
+			step2: screenStep2,
+			step3: screenStep3,
+			friends: screenFriends,
+			add: screenAdd
+		};
+		const el = document.getElementById('screen');
+		const focused = document.activeElement?.id;
+		const caret = focused === 'q' ? document.activeElement.selectionStart : null;
+		el.innerHTML = views[S.screen]();
+		document.getElementById('chrome').innerHTML = chrome();
+		document.getElementById('toast').innerHTML = S.toast
+			? `<div class="toast">${esc(S.toast)}</div>`
+			: '';
+		renderRail();
+		renderNotes();
+		// Keep the caret where it was — the search field re-renders on every
+		// keystroke, so without this typing would jump to the start.
+		if (focused === 'q') {
+			const q = document.getElementById('q');
+			if (q) {
+				q.focus();
+				q.setSelectionRange(caret, caret);
+			}
+		} else if (focused === 'phone') {
+			const p = document.getElementById('phone');
+			if (p) {
+				p.focus();
+				p.setSelectionRange(p.value.length, p.value.length);
+			}
+		}
+	}
+
+	document.addEventListener('click', (e) => {
+		const el = e.target.closest('[data-go],[data-add],[data-queue],[data-import],[data-day],[data-send],[data-invite-raw]');
+		if (!el) return;
+		if (el.dataset.go) return go(el.dataset.go);
+		if (el.dataset.add) return addPerson(el.dataset.add);
+		if (el.dataset.queue) return queuePerson(el.dataset.queue);
+		if (el.dataset.day) return toggleDay(Number(el.dataset.day));
+		if (el.dataset.import) {
+			S.imported = true;
+			toast(`${contactMatches().length} contacts matched.`);
+			return render();
+		}
+		if (el.dataset.inviteRaw) {
+			toast(`Invite queued for ${S.query.trim()}.`);
+			S.query = '';
+			return render();
+		}
+		if (el.dataset.send) {
+			S.sent = true;
+			toast('Opening your messaging app…');
+			return render();
+		}
+	});
+
+	document.addEventListener('input', (e) => {
+		if (e.target.id === 'q') {
+			S.query = e.target.value;
+			render();
+		}
+		if (e.target.id === 'phone') {
+			onPhone(e.target.value);
+			render();
+		}
+	});
+
+	render();
+</script>
